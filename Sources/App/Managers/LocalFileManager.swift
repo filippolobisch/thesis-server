@@ -21,7 +21,7 @@ enum FileManagerError: String, Error {
 /// A struct object used as an intermediate interface between the server and Apple's file manager methods.
 struct LocalFileManager {
     /// Holds a reference to the shared `default` instance of Apple's `FileManager`.
-    /// The purpose of this object is to avoid having to re-type `FileManager.default` anytime access to the filemanager is needed.
+    /// The purpose of this object is to avoid having to re-type `FileManager.default` anytime access to the `FileManager` is needed.
     private let fileManager = FileManager.default
     
     
@@ -56,7 +56,7 @@ struct LocalFileManager {
     
     
     /// Returns the URL of a provided resource name and extension if it exists in the directory of this project.
-    /// If it doesnt exist it creates a url of the filename inside the `data_files` directory.
+    /// If it doesn't exist it creates a url of the filename inside the `data_files` directory.
     /// - Parameters:
     ///   - name: The name of the resource.
     ///   - ext: The extension of the resource.
@@ -72,7 +72,7 @@ struct LocalFileManager {
         var fileURLForResource: URL? = nil
         
         // The following 'for case let' and the first guard condition was taken from the 'enumerator' documentation method in Apple's documentation.
-        // They were minorly modified and adapted from the example in the documentation.
+        // Minor modifications were made from the example in the documentation.
         // It can be found at the following link: https://developer.apple.com/documentation/foundation/filemanager/2765464-enumerator
         for case let fileURL as URL in directoryEnumerator {
             let resourceValues = try fileURL.resourceValues(forKeys: [.nameKey, .isDirectoryKey])
@@ -124,7 +124,7 @@ struct LocalFileManager {
     ///   - data: The data to be saved.
     ///   - name: The name of the resource.
     ///   - ext: The extension of the resource.
-    func save(data: Data, toResource name: String, withExtenstion ext: String? = nil) throws {
+    func save(data: Data, toResource name: String, withExtension ext: String? = nil) throws {
         let fileURL = try url(forResource: name, withExtension: ext).absoluteURL
         try data.write(to: fileURL, options: .atomic)
     }
@@ -135,8 +135,8 @@ struct LocalFileManager {
     ///   - data: The data to be saved.
     ///   - name: The name of the resource.
     ///   - ext: The extension of the resource.
-    func update(data: Data, ofResource name: String, withExtenstion ext: String? = nil) throws {
-        try save(data: data, toResource: name, withExtenstion: ext)
+    func update(data: Data, ofResource name: String, withExtension ext: String? = nil) throws {
+        try save(data: data, toResource: name, withExtension: ext)
     }
 
     
