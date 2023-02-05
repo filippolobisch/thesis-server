@@ -85,7 +85,7 @@ final class LocalFileManagerTests: XCTestCase {
         XCTAssertEqual(newContent, fileContentsAfterAssert, "The retrieved content for the saved file after the updated was expected to be equal to the newContent, however, the contents differ.")
     }
     
-    /// Test the deletion of an exisiting file does not throw an error.
+    /// Test the deletion of an existing file does not throw an error.
     func testDeleteExistingFile() throws {
         let filename = "delete-test-file"
         let testFileData = Data("This is some test data".utf8)
@@ -95,7 +95,7 @@ final class LocalFileManagerTests: XCTestCase {
         XCTAssertThrowsError(try localManager.get(contentsOf: filename), "Deleting the file expected to throw an error, however, an no error was thrown.")
     }
     
-    /// Test the deletion of an non exisiting file and ensure it throws an error.
+    /// Test the deletion of an non existing file and ensure it throws an error.
     func testDeleteNonExistingFile() throws {
         XCTAssertThrowsError(try localManager.delete(resource: "file-that-does-not-exist", withExtension: nil), "Deleting the file expected to throw an error, however, an no error was thrown.")
     }
