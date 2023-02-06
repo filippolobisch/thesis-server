@@ -8,9 +8,13 @@ public struct App {
     public static func main() async throws {
         var env = try Environment.detect()
         try LoggingSystem.bootstrap(from: &env)
+        
         let app = Application(env)
         defer { app.shutdown() }
+        
         try registerRoutes(app: app)
+        configure(app: app)
+        
         try app.run()
     }
     
