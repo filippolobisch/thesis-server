@@ -60,6 +60,10 @@ final class AWSManagerTests: XCTestCase {
         
         let downloadedFileData = try await awsManager.download(fileKey: filename)
         XCTAssertEqual(downloadedFileData, expectedContent, "The downloaded content was expected to be equal to the expected content, however, the content was different.")
+        
+        addTeardownBlock {
+            _ = try LocalFileManager().delete(resource: "Latex Cache", withExtension: "md")
+        }
     }
     
     /// Test the delete of a file in the AWS bucket.
