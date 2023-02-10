@@ -47,7 +47,7 @@ struct LocalFileManager {
     /// - Parameters:
     ///   - name: The name of the resource.
     ///   - ext: The extension of the resource.
-    private func makeSingleStringFilename(forResource name: String, withExtension ext: String? = nil) -> String {
+    func makeSingleStringFilename(forResource name: String, withExtension ext: String? = nil) -> String {
         guard let ext else { return name }
         let extensionSanitized = ext.trimmingCharacters(in: .whitespacesAndNewlines)
         guard ext != "" else { return name }
