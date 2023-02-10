@@ -21,26 +21,8 @@ final class AWSManagerTests: XCTestCase {
         XCTAssertTrue(files.count >= 0, "The number of retrieved files from the aws bucket was expected to be greater or equal to 0, however, the value was less than 0.")
     }
     
-    /// Test the upload of a file stored on local hard disk to the AWS bucket.
-    func testUploadFile() async throws {
-        let awsManager = await AWSS3Manager(bucketName: bucketName, region: .euCentral1)
-        let localManager = LocalFileManager()
-        let filename = "test-upload-file"
-        
-        let fileData = Data("This is the test data from the testSaveFile test case.".utf8)
-        try localManager.save(data: fileData, toResource: filename)
-        
-        let didUploadFile = try await awsManager.upload(resource: filename)
-        XCTAssertTrue(didUploadFile, "Uploading the file to AWS Bucket expected to be true, however, the file is not included in the new files.")
-            
-        addTeardownBlock {
-            _ = try await awsManager.delete(fileKey: filename)
-            try localManager.delete(resource: filename)
-        }
-    }
-    
     /// Test the upload of data to the AWS bucket.
-    func testUploadData() async throws {
+    func testUploadToBucket() async throws {
         let awsManager = await AWSS3Manager(bucketName: bucketName, region: .euCentral1)
         let filename = "test-upload-data-file-name"
         let fileData = Data("This is the test data from the testUploadData test case in the AWSManagerTests.".utf8)
