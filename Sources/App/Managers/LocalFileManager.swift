@@ -41,6 +41,32 @@ struct LocalFileManager {
         return filePath
     }
     
+    /// Returns the names of the files located in the `data_files` directory.
+    /// Uses the file manager enumerator to perform a deep search of the files located under the data files directory. This includes files located inside subfolders.
+    func listAllFilesInDataFilesDirectory() throws -> [String] {
+        let dataFilesURL = projectDirectoryURL.appendingPathComponent("data_files")
+        try fileManager.createDirectory(atPath: dataFilesURL.absoluteString, withIntermediateDirectories: true)
+        
+        // The following guard condition was taken from the 'enumerator' documentation method in Apple's documentation.
+        // It can be found at the following link: https://developer.apple.com/documentation/foundation/filemanager/2765464-enumerator
+        guard let directoryEnumerator = fileManager.enumerator(at: dataFilesURL, includingPropertiesForKeys: [.nameKey, .isDirectoryKey], options: .skipsHiddenFiles) else {
+            fatalError("Could not enumerate the subfiles of the data_files directory.")
+        }
+        
+        var files: [String] = []
+         
+        // The following 'for case let' and the first guard condition was taken from the 'enumerator' documentation method in Apple's documentation.
+        // Minor modifications were made from the example in the documentation.
+        // It can be found at the following link: https://developer.apple.com/documentation/foundation/filemanager/2765464-enumerator
+        for case let fileURL as URL in directoryEnumerator {
+            let resourceValues = try fileURL.resourceValues(forKeys: [.nameKey, .isDirectoryKey])
+            guard let isDirectory = resourceValues.isDirectory, let name = resourceValues.name, !isDirectory else { continue }
+            files.append(name)
+        }
+        
+        return files
+    }
+    
     
     /// Returns a single string filename for a given name and extension.
     /// It performs some sanitation checks and returns the best filename for the parameters passed.
@@ -81,7 +107,7 @@ struct LocalFileManager {
             }
             
             if ext == nil {
-                name = name.components(separatedBy: ".")[0]
+                name = name.components(separatedBy: ".").first!
             }
             
             guard name == filename else { continue }
