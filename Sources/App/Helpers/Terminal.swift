@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Struct to represent a terminal instance.
+/// Class to represent a terminal instance.
 class Terminal {
     /// The path of the terminal executable to run the commands.
     private let urlPath = "/bin/zsh" // Need to update path to work on Linux as well.
