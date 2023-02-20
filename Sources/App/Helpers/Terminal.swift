@@ -39,7 +39,7 @@ class Terminal {
         return try shell(command)
     }
     
-    
+    /// Method to kill the running process.
     @discardableResult
     func terminate() throws -> Bool {
         let process = try Process.run(URL(fileURLWithPath: urlPath), arguments: ["-c", "kill -9 \(pid + 1)"])
