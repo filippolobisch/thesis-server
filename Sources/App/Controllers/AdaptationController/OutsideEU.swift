@@ -82,7 +82,7 @@ class OutsideEU {
         }
     }
     
-    /// Method that stores the local file data onto the North American S3 bucket.
+    /// Method that stores the European S3 bucket files also onto the North American S3 bucket.
     /// First the files in the European bucket are retrieved, with their data being downloaded soon after.
     /// Followed by this it is uploaded to the North American S3 bucket.
     /// Returns `true` if no error is thrown.
@@ -102,7 +102,7 @@ class OutsideEU {
     }
     
     
-    /// Method that stores the local file data onto the European S3 bucket.
+    /// Method that stores the North American S3 bucket files onto the European S3 bucket.
     /// First the files in the North American bucket are retrieved, with their data being downloaded soon after.
     /// Followed by this it is uploaded to the European S3 bucket and if the upload is successful, the file is deleted from the North American bucket.
     /// Returns `true` if no error is thrown.
