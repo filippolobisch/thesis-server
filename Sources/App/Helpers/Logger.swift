@@ -28,7 +28,7 @@ class Logger {
     func saveLogs() {
         do {
             let logData = Data(logs.utf8)
-            try LocalFileManager().save(data: logData, toResource: "Log_\(Date().ISO8601Format())", withExtension: "log")
+            try LocalFileManager().save(data: logData, toResource: "Log_\(Date())", withExtension: "log")
         } catch {
             print(error.localizedDescription)
         }
