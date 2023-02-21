@@ -10,7 +10,14 @@ import Foundation
 /// Class to represent a terminal instance.
 class Terminal {
     /// The path of the terminal executable to run the commands.
-    private let urlPath = "/bin/zsh" // Need to update path to work on Linux as well.
+    private var urlPath: String {
+        #if os(macOS)
+        return "/bin/zsh"
+        #else
+        return "/bin/bash"
+        #endif
+    }
+    
     /// The ID of the process that is running.
     private(set) var pid = -1000 // Since each terminal class results in one benchmark test we hold a single process ID that is later used to kill that process.
     // The PID is set to -1000 to begin with so that it does not refer to any process.
