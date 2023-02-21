@@ -43,7 +43,7 @@ final class LocalFileManagerTests: XCTestCase {
     
     /// Test the retrieval of all the file names in the data files directory.
     func testListFiles() throws {
-        let expectation = 2 // We use two here because of the model.json file plus the one created in the setup method above.
+        let expectation = 1 // We use one here because of the created file in the setup method above.
         XCTAssertNoThrow(try localManager.listAllFilesInDataFilesDirectory(), "Getting the names of the file in the data_files directory expected to not throw an error, however, an error was thrown.")
         let files = try localManager.listAllFilesInDataFilesDirectory()
         XCTAssertEqual(files.count, expectation, "The file names retrieved from the local manager expected to be of size \(expectation), however, the result was \(files.count) instead of \(expectation).")
