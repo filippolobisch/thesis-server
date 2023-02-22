@@ -23,22 +23,12 @@ class SensitiveData {
     /// The task object that is used as a recurring task getting files constantly from the local component to generate system load.
     private(set) var getFilesConstantlyFromLocalTask: Task<Void, Never>?
     
-    /// Hold a weak reference to the passed adaptation controller to potentially send updates to RADAR.
-    /// We use a weak reference to prevent a retain cycle (i.e., strong references for both objects such that they never get de-allocated from memory).
-    weak var adaptationController: AdaptationController? = nil
-    
     /// The european AWS manager.
     let europeAWSManager = AWSS3Manager.europeManager
     
     /// The local file manager that can be used to
     let localManager = LocalFileManager()
     
-    
-    /// The initialiser of the SensitiveData class. Takes in an optional parameter that is used to connect this adaptation controller to the more generic controller.
-    /// - Parameter adaptationController: Optional adaptation controlller that can be used to call generic methods such as register app on radar and more.
-    init(adaptationController: AdaptationController? = nil) {
-        self.adaptationController = adaptationController
-    }
     
     /// Main function that runs the sensitive data stored either in the cloud or local based on a conditional of `usesCloud`.
     /// Handles the execution of this adaptation between sensitive data being stored in the cloud or locally.
