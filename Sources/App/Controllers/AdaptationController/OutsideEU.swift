@@ -11,14 +11,14 @@ import Foundation
 class OutsideEU {
     
     /// Property that determines whether the data is stored solely in the European region.
-    private var storeDataOnlyInEU = true {
-        didSet {
-            invalidateTimer = true
+    private(set) var storeDataOnlyInEU = false {
+        willSet {
+            cancelTask()
         }
     }
     
-    /// Property that determines when to invalidate the constant task timer.
-    private var invalidateTimer = false
+    /// The task object that is used as a recurring task to generate system load.
+    private(set) var task: Task<Void, Never>?
     
     /// Hold a weak reference to the passed adaptation controller to potentially send updates to RADAR.
     /// We use a weak reference to prevent a retain cycle (i.e., strong references for both objects such that they never get de-allocated from memory).
@@ -29,6 +29,7 @@ class OutsideEU {
     
     /// The north american AWS manager.
     let northAmericaAWSManager = AWSS3Manager.northAmericaManager
+    
     
     /// The initialiser of the OutsideEU class. Takes in an optional parameter that is used to connect this adaptation controller to the more generic controller.
     /// - Parameter adaptationController: Optional adaptation controlller that can be used to call generic methods such as register app on radar and more.
@@ -41,17 +42,24 @@ class OutsideEU {
     /// It then handles the appropriate adaptation case for the new `storeDataOnlyInEU` value.
     /// Once the adaptation is performed it calls the `getFilesConstantly` method to create a constant workload.
     /// Returns the "completed" string if no error is thrown and the adaptation was successfully executed.
-    /// - Parameter model: The model of the system. (Unused).
-    final func executeAdaptation(model: String) async throws -> String {
-        storeDataOnlyInEU.toggle()
+    /// - Parameters:
+    ///   - model: The model of the system. (Unused).
+    ///   - numberOfTimesToExecute: The number of times to execute this adaptation.
+    final func executeAdaptation(model: String, numberOfTimesToExecute: Int) async throws -> String {
+        let isOdd = !numberOfTimesToExecute.isMultiple(of: 2)
         
-        if storeDataOnlyInEU {
-            _ = try await storeDataInEU()
-        } else {
-            _ = try await storeDataOutsideEU()
+        // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
+        if isOdd {
+            storeDataOnlyInEU.toggle()
+
+            if storeDataOnlyInEU {
+                _ = try await storeDataInEU()
+            } else {
+                _ = try await storeDataOutsideEU()
+            }
         }
-        
-        await getFilesConstantly()
+
+        getFilesConstantly()
         return "Completed"
     }
     
@@ -59,15 +67,13 @@ class OutsideEU {
     /// Runs every two seconds to ensure that it creates a constant workload on the system.
     /// To ensure fair use of both cloud regions, we use the `randomElement` method, if `storeDataOnlyInEU` is true, otherwise we use the European AWS manager solely.
     /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
-    private func getFilesConstantly() async {
-        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] timer in
-            guard let self else { return }
-            guard !self.invalidateTimer else { timer.invalidate(); return }
-            
-            let managers = [self.europeAWSManager, self.northAmericaAWSManager]
-            let selectedManager = self.storeDataOnlyInEU ? self.europeAWSManager : managers.randomElement()!
-            
-            Task {
+    final func getFilesConstantly() {
+        task = Task {
+            repeat {
+                print("Inside current task.")
+                let managers = [europeAWSManager, northAmericaAWSManager]
+                let selectedManager = storeDataOnlyInEU ? europeAWSManager : managers.randomElement()!
+
                 do {
                     let files = try await selectedManager.getAllFilesInBucket()
                     guard let selectedFileKey = files.randomElement() else {
@@ -78,8 +84,22 @@ class OutsideEU {
                 } catch {
                     print(error.localizedDescription)
                 }
-            }
+                
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(2 * Double(NSEC_PER_SEC)))
+                } catch {
+                    print(error.localizedDescription)
+                }
+            } while !Task.isCancelled
         }
+    }
+    
+    /// Method to cancel the current running task of getting files constantly.
+    /// We first cancel the task and then once it's cancelled we set the task object to nil.
+    final func cancelTask() {
+        print("Cancelling getFilesConstantly task.")
+        task?.cancel()
+        task = nil
     }
     
     /// Method that stores the European S3 bucket files also onto the North American S3 bucket.
@@ -100,7 +120,6 @@ class OutsideEU {
         
         return true
     }
-    
     
     /// Method that stores the North American S3 bucket files onto the European S3 bucket.
     /// First the files in the North American bucket are retrieved, with their data being downloaded soon after.
