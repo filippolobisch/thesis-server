@@ -22,6 +22,10 @@ final class OutsideEUTests: XCTestCase {
         outsideEU.getFilesConstantly()
         
         XCTAssertNotNil(outsideEU.task, "Expected the task to not be nil, however, the task was nil.")
+        
+        addTeardownBlock {
+            self.outsideEU.cancelTask()
+        }
     }
     
     /// Tests the cancellation of a `Task` object that continuously runs.
@@ -41,7 +45,6 @@ final class OutsideEUTests: XCTestCase {
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false when starting the execution, however, the property is true.")
         
         _ = try await outsideEU.executeAdaptation(model: "", numberOfTimesToExecute: 1)
-        outsideEU.cancelTask() // We cancel the task as we do not require it to be running constantly for this test.
         
         XCTAssertTrue(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be true after executing the adaptation, however, the property is false.")
         
@@ -49,6 +52,7 @@ final class OutsideEUTests: XCTestCase {
         XCTAssertTrue(files.isEmpty, "Expected files in North American bucket to be empty, however, files still exist.")
 
         addTeardownBlock {
+            self.outsideEU.cancelTask()
             _ = try await self.outsideEU.northAmericaAWSManager.upload(resource: "Latex Cache", withExtension: "md")
         }
     }
@@ -60,11 +64,14 @@ final class OutsideEUTests: XCTestCase {
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false when starting the execution, however, the property is true.")
         
         _ = try await outsideEU.executeAdaptation(model: "", numberOfTimesToExecute: 2)
-        outsideEU.cancelTask() // We cancel the task as we do not require it to be running constantly for this test.
         
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false after executing the adaptation, however, the property is true.")
         
         let files = try await outsideEU.northAmericaAWSManager.getAllFilesInBucket()
         XCTAssertTrue(!files.isEmpty, "Expected files in North American bucket to exist, however, files do not exist.")
+        
+        addTeardownBlock {
+            self.outsideEU.cancelTask()
+        }
     }
 }

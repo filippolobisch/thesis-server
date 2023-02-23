@@ -22,6 +22,10 @@ final class SensitiveDataTests: XCTestCase {
         sensitiveData.getFilesConstantlyFromCloud()
 
         XCTAssertNotNil(sensitiveData.getFilesConstantlyFromCloudTask, "Expected the task to not be nil, however, the task was nil.")
+        
+        addTeardownBlock {
+            self.sensitiveData.cancelCurrentlyRunningTask()
+        }
     }
 
     /// Tests the cancellation of the `Task` object that continuously runs.
@@ -39,6 +43,10 @@ final class SensitiveDataTests: XCTestCase {
         sensitiveData.getFilesConstantlyFromLocal()
 
         XCTAssertNotNil(sensitiveData.getFilesConstantlyFromLocalTask, "Expected the task to not be nil, however, the task was nil.")
+        
+        addTeardownBlock {
+            self.sensitiveData.cancelCurrentlyRunningTask()
+        }
     }
 
     /// Tests the cancellation of the `Task` object that continuously runs.
@@ -58,7 +66,7 @@ final class SensitiveDataTests: XCTestCase {
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true when starting the execution, however, the property is false.")
 
         _ = try await sensitiveData.executeAdaptation(model: "", numberOfTimesToExecute: 1)
-        sensitiveData.cancelCurrentlyRunningTask() // We cancel the task as we do not require it to be running constantly for this test.
+//        sensitiveData.cancelCurrentlyRunningTask() // We cancel the task as we do not require it to be running constantly for this test.
 
         XCTAssertFalse(sensitiveData.usesCloud, "Expected 'usesCloud' property to be false after executing the adaptation, however, the property is true.")
 
@@ -66,6 +74,7 @@ final class SensitiveDataTests: XCTestCase {
         XCTAssertTrue(files.isEmpty, "Expected files in European bucket to be empty, however, files still exist.")
 
         addTeardownBlock {
+            self.sensitiveData.cancelCurrentlyRunningTask()
             _ = try await self.sensitiveData.europeAWSManager.upload(resource: "Latex Cache", withExtension: "md")
         }
     }
@@ -77,11 +86,14 @@ final class SensitiveDataTests: XCTestCase {
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true when starting the execution, however, the property is false.")
 
         _ = try await sensitiveData.executeAdaptation(model: "", numberOfTimesToExecute: 2)
-        sensitiveData.cancelCurrentlyRunningTask() // We cancel the task as we do not require it to be running constantly for this test.
 
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true after executing the adaptation, however, the property is false.")
 
         let files = try await sensitiveData.europeAWSManager.getAllFilesInBucket()
         XCTAssertTrue(!files.isEmpty, "Expected files in European bucket to exist, however, files do not exist.")
+        
+        addTeardownBlock {
+            self.sensitiveData.cancelCurrentlyRunningTask()
+        }
     }
 }

@@ -14,7 +14,7 @@ final class AWSManagerTests: XCTestCase {
     
     /// The main awsManager property that is used in all the tests.
     /// We create it here so that it does not get recreated for each test.
-    private let awsManager = AWSS3Manager(bucketName: "eu-data-bucket", region: .euCentral1)
+    private let awsManager = AWSS3Manager.europeManager
     
     /// Test the retrieval of all objects in an AWS Bucket.
     func testListObjectsEU() async throws {
