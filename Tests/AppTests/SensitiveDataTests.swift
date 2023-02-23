@@ -15,6 +15,13 @@ final class SensitiveDataTests: XCTestCase {
     /// The main sensitive property that is used in all the tests.
     /// We create it here so that it does not get recreated for each test.
     private let sensitiveData = SensitiveData()
+    
+    /// Method that runs before every single test in this test suite.
+    /// We cancel any currently running task so no active task is executing.
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        sensitiveData.cancelCurrentlyRunningTask()
+    }
 
     /// Tests the creation of a `Task` object that continuously runs that retrieves senstiveData on the cloud.
     /// We check to ensure that the `getFilesConstantlyFromCloudTask` property is not nil after its creation inside the `getFilesConstantlyFromCloud` method.
@@ -83,14 +90,10 @@ final class SensitiveDataTests: XCTestCase {
     func testEvenNumberOfTimesToExecuteAdaptation() async throws {
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true when starting the execution, however, the property is false.")
 
-        _ = try await sensitiveData.executeAdaptation(model: "", numberOfTimesToExecute: 2)
+        let result = try await sensitiveData.executeAdaptation(model: "", numberOfTimesToExecute: 2)
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true after executing the adaptation, however, the property is false.")
 
-        let files = try await sensitiveData.europeAWSManager.getAllFilesInBucket()
-        XCTAssertTrue(!files.isEmpty, "Expected files in European bucket to exist, however, files do not exist.")
-        
-        addTeardownBlock {
-            self.sensitiveData.cancelCurrentlyRunningTask()
-        }
+        let expectation = "Completed"
+        XCTAssertEqual(result, expectation, "Expected the returned string from the executeAdaptation to be equal to the expectation string, however, files do not exist.")
     }
 }

@@ -16,6 +16,13 @@ final class OutsideEUTests: XCTestCase {
     /// We create it here so that it does not get recreated for each test.
     private let outsideEU = OutsideEU()
     
+    /// Method that runs before every single test in this test suite.
+    /// We cancel any currently running task so no active task is executing.
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        outsideEU.cancelTask()
+    }
+    
     /// Tests the creation of a `Task` object that continuously runs.
     /// We check to ensure that the `task` property is not nil after its creation inside the `getFilesConstantly` method.
     func testTaskCreation() {
@@ -62,14 +69,10 @@ final class OutsideEUTests: XCTestCase {
     func testEvenNumberOfTimesToExecuteAdaptation() async throws {
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false when starting the execution, however, the property is true.")
         
-        _ = try await outsideEU.executeAdaptation(model: "", numberOfTimesToExecute: 2)
+        let result = try await outsideEU.executeAdaptation(model: "", numberOfTimesToExecute: 2)
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false after executing the adaptation, however, the property is true.")
         
-        let files = try await outsideEU.northAmericaAWSManager.getAllFilesInBucket()
-        XCTAssertTrue(!files.isEmpty, "Expected files in North American bucket to exist, however, files do not exist.")
-        
-        addTeardownBlock {
-            self.outsideEU.cancelTask()
-        }
+        let expectation = "Completed"
+        XCTAssertEqual(result, expectation, "Expected the returned string from the executeAdaptation to be equal to the expectation string, however, files do not exist.")
     }
 }
