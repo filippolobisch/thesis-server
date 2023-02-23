@@ -42,18 +42,22 @@ class OutsideEU {
         if isOdd {
             storeDataOnlyInEU.toggle()
 
-            if storeDataOnlyInEU {
-                _ = try await storeDataInEU()
-            } else {
-                _ = try await storeDataOutsideEU()
+            let adaptSystemTask = Task<Bool, any Error> {
+                if storeDataOnlyInEU {
+                    return try await storeDataInEU()
+                } else {
+                    return try await storeDataOutsideEU()
+                }
             }
+            
+            let didAdapt = try await adaptSystemTask.value
+            guard didAdapt else {
+                throw "OutsideEU adaptation was not performed."
+            }
+            
+            getFilesConstantly()
         }
         
-        guard task == nil else {
-            return "Completed"
-        }
-
-        getFilesConstantly()
         return "Completed"
     }
     

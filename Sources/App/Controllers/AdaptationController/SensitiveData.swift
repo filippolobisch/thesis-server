@@ -46,21 +46,24 @@ class SensitiveData {
         if isOdd {
             usesCloud.toggle()
             
-            if usesCloud {
-                _ = try await storeSensitiveDataOnTheCloud()
-            } else {
-                _ = try await moveSensitiveDataFromCloudToLocal()
+            let adaptSystemTask = Task<Bool, any Error> {
+                if usesCloud {
+                    return try await storeSensitiveDataOnTheCloud()
+                } else {
+                    return try await moveSensitiveDataFromCloudToLocal()
+                }
             }
-        }
-        
-        guard getFilesConstantlyFromCloudTask == nil, getFilesConstantlyFromLocalTask == nil else {
-            return "Completed"
-        }
-        
-        if usesCloud {
-            getFilesConstantlyFromCloud()
-        } else {
-            getFilesConstantlyFromLocal()
+            
+            let didAdapt = try await adaptSystemTask.value
+            guard didAdapt else {
+                throw "SensitiveData adaptation was not performed."
+            }
+            
+            if usesCloud {
+                getFilesConstantlyFromCloud()
+            } else {
+                getFilesConstantlyFromLocal()
+            }
         }
         
         return "Completed"
