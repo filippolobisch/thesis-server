@@ -68,9 +68,15 @@ class SensitiveData {
     /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
     final func getFilesConstantlyFromCloud() {
         getFilesConstantlyFromCloudTask = Task {
+            var files: [String] = []
+            do {
+                files = try await europeAWSManager.getAllFilesInBucket()
+            } catch {
+                print(error.localizedDescription)
+            }
+            
             repeat {
                 do {
-                    let files = try await europeAWSManager.getAllFilesInBucket()
                     guard let selectedFileKey = files.randomElement() else {
                         throw "Could not retrieve random element from the received file names of the bucket."
                     }

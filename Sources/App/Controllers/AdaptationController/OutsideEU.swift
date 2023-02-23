@@ -59,12 +59,18 @@ class OutsideEU {
     /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
     final func getFilesConstantly() {
         task = Task {
+            let managers = [europeAWSManager, northAmericaAWSManager]
+            let selectedManager = storeDataOnlyInEU ? europeAWSManager : managers.randomElement()!
+            
+            var files: [String] = []
+            do {
+                files = try await europeAWSManager.getAllFilesInBucket()
+            } catch {
+                print(error.localizedDescription)
+            }
+            
             repeat {
-                let managers = [europeAWSManager, northAmericaAWSManager]
-                let selectedManager = storeDataOnlyInEU ? europeAWSManager : managers.randomElement()!
-
                 do {
-                    let files = try await selectedManager.getAllFilesInBucket()
                     guard let selectedFileKey = files.randomElement() else {
                         throw "Could not retrieve random element from the received file names of the bucket."
                     }
