@@ -60,7 +60,6 @@ class OutsideEU {
     final func getFilesConstantly() {
         task = Task {
             repeat {
-                print("Inside current task.")
                 let managers = [europeAWSManager, northAmericaAWSManager]
                 let selectedManager = storeDataOnlyInEU ? europeAWSManager : managers.randomElement()!
 
@@ -76,7 +75,7 @@ class OutsideEU {
                 }
                 
                 do {
-                    try await Task.sleep(nanoseconds: UInt64(2 * Double(NSEC_PER_SEC)))
+                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
                 } catch {
                     print(error.localizedDescription)
                 }

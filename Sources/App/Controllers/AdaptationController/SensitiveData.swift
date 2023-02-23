@@ -81,7 +81,7 @@ class SensitiveData {
                 }
                 
                 do {
-                    try await Task.sleep(nanoseconds: UInt64(2 * Double(NSEC_PER_SEC)))
+                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
                 } catch {
                     print(error.localizedDescription)
                 }
@@ -120,7 +120,7 @@ class SensitiveData {
                 }
                 
                 do {
-                    try await Task.sleep(nanoseconds: UInt64(2 * Double(NSEC_PER_SEC)))
+                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
                 } catch {
                     print(error.localizedDescription)
                 }
