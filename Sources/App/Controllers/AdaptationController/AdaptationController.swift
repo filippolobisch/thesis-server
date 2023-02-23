@@ -14,6 +14,7 @@ import Fluent
 
 /// The main adaptation controller.
 class AdaptationController {
+    
     /// The shared instance of the `AdaptationController` class. Uses the singleton design pattern.
     static let shared = AdaptationController()
     
@@ -22,6 +23,14 @@ class AdaptationController {
     
     /// The IP of the RADAR software.
     private let radarIP = "http://127.0.0.1:7770"
+    
+    /// The outsideEU object to perform calls to the adaptation.
+    /// This is needed to ensure that everytime the adaptation is called the properties that need to updated don't reset.
+    let outsideEU = OutsideEU()
+    
+    /// The sensitiveData object to perform calls to the adaptation.
+    /// This is needed to ensure that everytime the adaptation is called the properties that need to updated don't reset.
+    let sensitiveData = SensitiveData()
     
     
     /// Method to register this application on RADAR as a managed context system.
@@ -89,23 +98,20 @@ class AdaptationController {
         let adaptationKeys = adaptationsCount.keys
         
         for key in adaptationKeys {
+            let numberOfTimesToExecute = adaptationsCount[key] ?? 1
             switch key {
             case 1: // EU
-                let outsideEU = OutsideEU(adaptationController: self)
-                
                 Task {
                     do {
-                        _ = try await outsideEU.executeAdaptation(model: model)
+                        _ = try await outsideEU.executeAdaptation(model: model, numberOfTimesToExecute: numberOfTimesToExecute)
                     } catch {
                         fatalError("An error occurred inside the outsideEU main adaptation method.")
                     }
                 }
             case 2: // SensitiveData
-                let sensitiveData = SensitiveData(adaptationController: self)
-                
                 Task {
                     do {
-                        _ = try await sensitiveData.executeAdaptation(model: model)
+                        _ = try await sensitiveData.executeAdaptation(model: model, numberOfTimesToExecute: numberOfTimesToExecute)
                     } catch {
                         fatalError("An error occurred inside the sensitiveData main adaptation method.")
                     }

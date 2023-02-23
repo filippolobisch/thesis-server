@@ -11,18 +11,14 @@ import Foundation
 class SensitiveData {
     
     /// Property that determines whether the data is stored on the cloud component of this web server.
-    private var usesCloud = true {
-        didSet {
-            invalidateTimer = true
+    private(set) var usesCloud = true {
+        willSet {
+            cancelTask()
         }
     }
     
-    /// Property that determines when to invalidate the constant task timer.
-    private var invalidateTimer = false
-    
-    /// Hold a weak reference to the passed adaptation controller to potentially send updates to RADAR.
-    /// We use a weak reference to prevent a retain cycle (i.e., strong references for both objects such that they never get de-allocated from memory).
-    weak var adaptationController: AdaptationController? = nil
+    /// The task object that is used as a recurring task to generate system load.
+    private(set) var task: Task<Void, Never>?
     
     /// The european AWS manager.
     let europeAWSManager = AWSS3Manager.europeManager
@@ -30,11 +26,6 @@ class SensitiveData {
     /// The local file manager that can be used to
     let localManager = LocalFileManager()
     
-    /// The initialiser of the SensitiveData class. Takes in an optional parameter that is used to connect this adaptation controller to the more generic controller.
-    /// - Parameter adaptationController: Optional adaptation controlller that can be used to call generic methods such as register app on radar and more.
-    init(adaptationController: AdaptationController? = nil) {
-        self.adaptationController = adaptationController
-    }
     
     /// Main function that runs the sensitive data stored either in the cloud or local based on a conditional of `usesCloud`.
     /// Handles the execution of this adaptation between sensitive data being stored in the cloud or locally.
@@ -42,42 +33,76 @@ class SensitiveData {
     /// It then handles the appropriate adaptation case for the new `usesCloud` value.
     /// Once the adaptation is performed it calls the appropriate `getFilesConstantly`method to create a constant workload, based on the new `usesCloud` value.
     /// Returns the "completed" string if no error is thrown and the adaptation was successfully executed.
-    /// - Parameter model: The model of the system. (Unused).
-    final func executeAdaptation(model: String) async throws -> String {
-        if usesCloud {
-            _ = try await storeSensitiveDataOnTheCloud()
-            getFilesConstantlyUsingCloud()
-        } else {
-            _ = try await moveSensitiveDataFromCloudToLocal()
-            getFilesConstantlyLocally()
+    /// - Parameters:
+    ///   - model: The model of the system. (Unused).
+    ///   - numberOfTimesToExecute: The number of times to execute this adaptation.
+    final func executeAdaptation(model: String, numberOfTimesToExecute: Int) async throws -> String {
+        let isOdd = !numberOfTimesToExecute.isMultiple(of: 2)
+        
+        // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
+        if isOdd {
+            usesCloud.toggle()
+            
+            let adaptSystemTask = Task<Bool, any Error> {
+                if usesCloud {
+                    return try await storeSensitiveDataOnTheCloud()
+                } else {
+                    return try await moveSensitiveDataFromCloudToLocal()
+                }
+            }
+            
+            let didAdapt = try await adaptSystemTask.value
+            guard didAdapt else {
+                throw "SensitiveData adaptation was not performed."
+            }
+            
+            getFilesConstantly()
         }
         
         return "Completed"
+    }
+    
+    
+    /// Method that gets files constantly from the cloud.
+    /// Checks the usesCloud property and selects the appropriate background task method.
+    final func getFilesConstantly() {
+        if usesCloud {
+            getFilesConstantlyFromCloud()
+        } else {
+            getFilesConstantlyFromLocal()
+        }
     }
     
     /// Method that gets files constantly from the cloud.
     /// Runs every two seconds to ensure that it creates a constant workload on the system.
     /// We use the European AWS manager solely to simply this use case instead of tracking and randomising where files get located.
     /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
-    private func getFilesConstantlyUsingCloud() {
-        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] timer in
-            guard let self else { return }
-            guard !self.invalidateTimer else { timer.invalidate(); return }
+    private func getFilesConstantlyFromCloud() {
+        task = Task {
+            var files: [String] = []
+            do {
+                files = try await europeAWSManager.getAllFilesInBucket()
+            } catch {
+                print(error.localizedDescription)
+            }
             
-            let manager = self.europeAWSManager
-            
-            Task {
+            repeat {
                 do {
-                    let files = try await manager.getAllFilesInBucket()
                     guard let selectedFileKey = files.randomElement() else {
                         throw "Could not retrieve random element from the received file names of the bucket."
                     }
                     
-                    _ = try await manager.download(fileKey: selectedFileKey)
+                    _ = try await europeAWSManager.download(fileKey: selectedFileKey)
                 } catch {
                     print(error.localizedDescription)
                 }
-            }
+                
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
+                } catch {
+                    print(error.localizedDescription)
+                }
+            } while !Task.isCancelled
         }
     }
     
@@ -96,23 +121,36 @@ class SensitiveData {
     /// Method that gets files constantly from local directory.
     /// Runs every two seconds to ensure that it creates a constant workload on the system.
     /// Since we store all files always in the `data_files` directory we check that directory and read a randomly selected file from there.
-    private func getFilesConstantlyLocally() {
-        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] timer in
-            guard let self else { return }
-            guard !self.invalidateTimer else { timer.invalidate(); return }
-            
-            do {
-                let files = try self.localManager.listAllFilesInDataFilesDirectory()
-                guard let selectedFileKey = files.randomElement() else {
-                    throw "Could not retrieve random element from the received file names of the bucket."
+    private func getFilesConstantlyFromLocal() {
+        task = Task {
+            repeat {
+                do {
+                    let files = try localManager.listAllFilesInDataFilesDirectory()
+                    guard let selectedFileKey = files.randomElement() else {
+                        throw "Could not retrieve random element from the received file names of local directory."
+                    }
+                    
+                    let (filename, ext) = split(filename: selectedFileKey)
+                    _ = try localManager.get(contentsOf: filename, withExtension: ext)
+                } catch {
+                    print(error.localizedDescription)
                 }
                 
-                let (filename, ext) = self.split(filename: selectedFileKey)
-                _ = try self.localManager.get(contentsOf: filename, withExtension: ext)
-            } catch {
-                print(error.localizedDescription)
-            }
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
+                } catch {
+                    print(error.localizedDescription)
+                }
+            } while !Task.isCancelled
         }
+    }
+    
+    /// Method to cancel the current running task of getting files constantly.
+    /// We first cancel the task and then once it's cancelled we set the task object to nil.
+    final func cancelTask() {
+        print("Cancelling getFilesConstantly task.")
+        task?.cancel()
+        task = nil
     }
     
     /// Method that stores the bucket data onto the data files local directory.

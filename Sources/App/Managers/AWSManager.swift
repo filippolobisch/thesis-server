@@ -55,9 +55,8 @@ struct AWSS3Manager {
     /// Returns a list of the files that are stored in AWS S3 for this particular region.
     func getAllFilesInBucket() async throws -> [String] {
         let listInput = ListObjectsV2Input(bucket: bucketName)
-        guard let objects = try await client.listObjectsV2(input: listInput).contents else {
-            throw AWSError.couldNotRetrieveListObjects
-        }
+        let objects = try await client.listObjectsV2(input: listInput).contents
+        guard let objects else { return [] }
 
         return objects.compactMap(\.key) // Here the key of an AWS S3 object represents the file name.
     }
@@ -101,11 +100,16 @@ struct AWSS3Manager {
         }
 
         let data = bodyData.toBytes().getData()
-        try localManager.save(data: data, toResource: fileKey)
-         
         return data
     }
-
+    
+    /// Returns the data downloaded from a file that is stored in AWS S3 bucket for this region and name and saves it to local directory.
+    /// - Parameter fileKey: The name of the file to be downloaded.
+    func downloadAndSave(fileKey: String) async throws -> Data {
+        let data = try await download(fileKey: fileKey) // Calls the download method above.
+        try localManager.save(data: data, toResource: fileKey)
+        return data
+    }
     
     /// Returns the result of whether the file was successfully deleted from this bucket.
     /// - Parameter fileKey: The name of the file to be deleted from the bucket.

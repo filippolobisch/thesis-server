@@ -9,5 +9,5 @@ import Foundation
 
 enum Constants: String {
     case euS3BucketName = "eu-data-bucket"
-    case naS3BucketName = "na-data-bucket"
+    case naS3BucketName = "fl-na-data-bucket"
 }
