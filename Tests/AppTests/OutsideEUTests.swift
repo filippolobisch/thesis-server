@@ -45,7 +45,6 @@ final class OutsideEUTests: XCTestCase {
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false when starting the execution, however, the property is true.")
         
         _ = try await outsideEU.executeAdaptation(model: "", numberOfTimesToExecute: 1)
-        
         XCTAssertTrue(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be true after executing the adaptation, however, the property is false.")
         
         let files = try await outsideEU.northAmericaAWSManager.getAllFilesInBucket()
@@ -64,7 +63,6 @@ final class OutsideEUTests: XCTestCase {
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false when starting the execution, however, the property is true.")
         
         _ = try await outsideEU.executeAdaptation(model: "", numberOfTimesToExecute: 2)
-        
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false after executing the adaptation, however, the property is true.")
         
         let files = try await outsideEU.northAmericaAWSManager.getAllFilesInBucket()

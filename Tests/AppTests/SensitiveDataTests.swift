@@ -66,8 +66,6 @@ final class SensitiveDataTests: XCTestCase {
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true when starting the execution, however, the property is false.")
 
         _ = try await sensitiveData.executeAdaptation(model: "", numberOfTimesToExecute: 1)
-//        sensitiveData.cancelCurrentlyRunningTask() // We cancel the task as we do not require it to be running constantly for this test.
-
         XCTAssertFalse(sensitiveData.usesCloud, "Expected 'usesCloud' property to be false after executing the adaptation, however, the property is true.")
 
         let files = try await sensitiveData.europeAWSManager.getAllFilesInBucket()
@@ -86,7 +84,6 @@ final class SensitiveDataTests: XCTestCase {
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true when starting the execution, however, the property is false.")
 
         _ = try await sensitiveData.executeAdaptation(model: "", numberOfTimesToExecute: 2)
-
         XCTAssertTrue(sensitiveData.usesCloud, "Expected 'usesCloud' property to be true after executing the adaptation, however, the property is false.")
 
         let files = try await sensitiveData.europeAWSManager.getAllFilesInBucket()

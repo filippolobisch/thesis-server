@@ -48,6 +48,10 @@ class OutsideEU {
                 _ = try await storeDataOutsideEU()
             }
         }
+        
+        guard task == nil else {
+            return "Completed"
+        }
 
         getFilesConstantly()
         return "Completed"

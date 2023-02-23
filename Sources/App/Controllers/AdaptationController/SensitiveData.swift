@@ -53,6 +53,10 @@ class SensitiveData {
             }
         }
         
+        guard getFilesConstantlyFromCloudTask == nil, getFilesConstantlyFromLocalTask == nil else {
+            return "Completed"
+        }
+        
         if usesCloud {
             getFilesConstantlyFromCloud()
         } else {
