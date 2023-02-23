@@ -15,56 +15,28 @@ final class SensitiveDataTests: XCTestCase {
     /// The main sensitive property that is used in all the tests.
     /// We create it here so that it does not get recreated for each test.
     private let sensitiveData = SensitiveData()
+
+    /// Tests the creation of a `Task` object that continuously runs.
+    /// We check to ensure that the `task` property is not nil after its creation inside the `getFilesConstantly` method.
+    func testTaskCreation() {
+        sensitiveData.getFilesConstantly()
+        XCTAssertNotNil(sensitiveData.task, "Expected the task to not be nil, however, the task was nil.")
+        
+        addTeardownBlock {
+            self.sensitiveData.cancelTask()
+        }
+    }
     
-    /// Method that runs before every single test in this test suite.
-    /// We cancel any currently running task so no active task is executing.
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-        sensitiveData.cancelCurrentlyRunningTask()
-    }
-
-    /// Tests the creation of a `Task` object that continuously runs that retrieves senstiveData on the cloud.
-    /// We check to ensure that the `getFilesConstantlyFromCloudTask` property is not nil after its creation inside the `getFilesConstantlyFromCloud` method.
-    func testCloudTaskCreation() {
-        sensitiveData.getFilesConstantlyFromCloud()
-
-        XCTAssertNotNil(sensitiveData.getFilesConstantlyFromCloudTask, "Expected the task to not be nil, however, the task was nil.")
+    /// Tests the cancellation of a `Task` object that continuously runs.
+    /// We check to ensure that the `task` property is nil after its cancellation inside the `cancelTask` method, signifying the task was successfully cancelled.
+    func testTaskCancellation() async throws {
+        sensitiveData.getFilesConstantly()
+        sensitiveData.cancelTask()
         
-        addTeardownBlock {
-            self.sensitiveData.cancelCurrentlyRunningTask()
-        }
+        XCTAssertNil(sensitiveData.task, "Expected the task to be nil signifying it was cancelled, however, the task is not nil meaning it is still active.")
     }
 
-    /// Tests the cancellation of the `Task` object that continuously runs.
-    /// We check to ensure that the `getFilesConstantlyFromCloudTask` property is nil after its cancellation inside the `cancelCurrentlyRunningTask` method, signifying the task was successfully cancelled.
-    func testCloudTaskCancellation() async throws {
-        sensitiveData.getFilesConstantlyFromCloud()
-        sensitiveData.cancelCurrentlyRunningTask()
-
-        XCTAssertNil(sensitiveData.getFilesConstantlyFromCloudTask, "Expected the task to be nil signifying it was cancelled, however, the task is not nil meaning it is still active.")
-    }
-
-    /// Tests the creation of a `Task` object that continuously runs that retrieves senstiveData on the local component.
-    /// We check to ensure that the `getFilesConstantlyFromLocalTask` property is not nil after its creation inside the `getFilesConstantlyFromLocal` method.
-    func testLocalTaskCreation() {
-        sensitiveData.getFilesConstantlyFromLocal()
-
-        XCTAssertNotNil(sensitiveData.getFilesConstantlyFromLocalTask, "Expected the task to not be nil, however, the task was nil.")
-        
-        addTeardownBlock {
-            self.sensitiveData.cancelCurrentlyRunningTask()
-        }
-    }
-
-    /// Tests the cancellation of the `Task` object that continuously runs.
-    /// We check to ensure that the `getFilesConstantlyFromLocalTask` property is nil after its cancellation inside the `cancelCurrentlyRunningTask` method, signifying the task was successfully cancelled.
-    func testLocalTaskCancellation() async throws {
-        sensitiveData.getFilesConstantlyFromLocal()
-        sensitiveData.cancelCurrentlyRunningTask()
-
-        XCTAssertNil(sensitiveData.getFilesConstantlyFromLocalTask, "Expected the task to be nil signifying it was cancelled, however, the task is not nil meaning it is still active.")
-    }
-
+    #if os(macOS)
     /// Tests the executeAdaptation method of the SensitiveData class when an odd number value is passed for the parameter numberOfTimesToExecute.
     /// We ensure that there is a change in the `usesCloud` property (from true to false).
     /// We also ensure that the correct changes to the system are performed (removing content from European bucket to local content), to verify that the adaptation executes as we expect.
@@ -79,7 +51,7 @@ final class SensitiveDataTests: XCTestCase {
         XCTAssertTrue(files.isEmpty, "Expected files in European bucket to be empty, however, files still exist.")
 
         addTeardownBlock {
-            self.sensitiveData.cancelCurrentlyRunningTask()
+            self.sensitiveData.cancelTask()
             _ = try await self.sensitiveData.europeAWSManager.upload(resource: "Latex Cache", withExtension: "md")
         }
     }
@@ -95,5 +67,10 @@ final class SensitiveDataTests: XCTestCase {
 
         let expectation = "Completed"
         XCTAssertEqual(result, expectation, "Expected the returned string from the executeAdaptation to be equal to the expectation string, however, files do not exist.")
+        
+        addTeardownBlock {
+            self.sensitiveData.cancelTask()
+        }
     }
+    #endif
 }

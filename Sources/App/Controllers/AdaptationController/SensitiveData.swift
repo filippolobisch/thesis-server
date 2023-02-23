@@ -13,15 +13,12 @@ class SensitiveData {
     /// Property that determines whether the data is stored on the cloud component of this web server.
     private(set) var usesCloud = true {
         willSet {
-            cancelCurrentlyRunningTask()
+            cancelTask()
         }
     }
     
-    /// The task object that is used as a recurring task getting files constantly from the cloud to generate system load.
-    private(set) var getFilesConstantlyFromCloudTask: Task<Void, Never>?
-    
-    /// The task object that is used as a recurring task getting files constantly from the local component to generate system load.
-    private(set) var getFilesConstantlyFromLocalTask: Task<Void, Never>?
+    /// The task object that is used as a recurring task to generate system load.
+    private(set) var task: Task<Void, Never>?
     
     /// The european AWS manager.
     let europeAWSManager = AWSS3Manager.europeManager
@@ -59,22 +56,29 @@ class SensitiveData {
                 throw "SensitiveData adaptation was not performed."
             }
             
-            if usesCloud {
-                getFilesConstantlyFromCloud()
-            } else {
-                getFilesConstantlyFromLocal()
-            }
+            getFilesConstantly()
         }
         
         return "Completed"
+    }
+    
+    
+    /// Method that gets files constantly from the cloud.
+    /// Checks the usesCloud property and selects the appropriate background task method.
+    final func getFilesConstantly() {
+        if usesCloud {
+            getFilesConstantlyFromCloud()
+        } else {
+            getFilesConstantlyFromLocal()
+        }
     }
     
     /// Method that gets files constantly from the cloud.
     /// Runs every two seconds to ensure that it creates a constant workload on the system.
     /// We use the European AWS manager solely to simply this use case instead of tracking and randomising where files get located.
     /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
-    final func getFilesConstantlyFromCloud() {
-        getFilesConstantlyFromCloudTask = Task {
+    private func getFilesConstantlyFromCloud() {
+        task = Task {
             var files: [String] = []
             do {
                 files = try await europeAWSManager.getAllFilesInBucket()
@@ -117,8 +121,8 @@ class SensitiveData {
     /// Method that gets files constantly from local directory.
     /// Runs every two seconds to ensure that it creates a constant workload on the system.
     /// Since we store all files always in the `data_files` directory we check that directory and read a randomly selected file from there.
-    final func getFilesConstantlyFromLocal() {
-        getFilesConstantlyFromLocalTask = Task {
+    private func getFilesConstantlyFromLocal() {
+        task = Task {
             repeat {
                 do {
                     let files = try localManager.listAllFilesInDataFilesDirectory()
@@ -142,20 +146,11 @@ class SensitiveData {
     }
     
     /// Method to cancel the current running task of getting files constantly.
-    /// Since we are dealing with two potential tasks, we check each task individually whether they are not nil (using the `if let ...` syntax).
-    /// If one of the tasks is not nil we cancel the task and then set that task object to nil.
-    final func cancelCurrentlyRunningTask() {
-        if let getFilesConstantlyFromCloudTask {
-            print("Cancelling getFilesConstantlyFromCloudTask.")
-            getFilesConstantlyFromCloudTask.cancel()
-            self.getFilesConstantlyFromCloudTask = nil
-        }
-        
-        if let getFilesConstantlyFromLocalTask {
-            print("Cancelling getFilesConstantlyFromLocalTask.")
-            getFilesConstantlyFromLocalTask.cancel()
-            self.getFilesConstantlyFromLocalTask = nil
-        }
+    /// We first cancel the task and then once it's cancelled we set the task object to nil.
+    final func cancelTask() {
+        print("Cancelling getFilesConstantly task.")
+        task?.cancel()
+        task = nil
     }
     
     /// Method that stores the bucket data onto the data files local directory.

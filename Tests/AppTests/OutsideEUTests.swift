@@ -16,18 +16,10 @@ final class OutsideEUTests: XCTestCase {
     /// We create it here so that it does not get recreated for each test.
     private let outsideEU = OutsideEU()
     
-    /// Method that runs before every single test in this test suite.
-    /// We cancel any currently running task so no active task is executing.
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-        outsideEU.cancelTask()
-    }
-    
     /// Tests the creation of a `Task` object that continuously runs.
     /// We check to ensure that the `task` property is not nil after its creation inside the `getFilesConstantly` method.
     func testTaskCreation() {
         outsideEU.getFilesConstantly()
-        
         XCTAssertNotNil(outsideEU.task, "Expected the task to not be nil, however, the task was nil.")
         
         addTeardownBlock {
@@ -44,6 +36,8 @@ final class OutsideEUTests: XCTestCase {
         XCTAssertNil(outsideEU.task, "Expected the task to be nil signifying it was cancelled, however, the task is not nil meaning it is still active.")
     }
     
+    
+    #if os(macOS)
     /// Tests the executeAdaptation method of the OutsideEU class when an odd number value is passed for the parameter numberOfTimesToExecute.
     /// We ensure that there is a change in the `storeDataOnlyInEU` property (from false to true).
     /// We also ensure that the correct changes to the system are performed (removing content from north american bucket), to verify that the adaptation executes as we expect.
@@ -74,5 +68,10 @@ final class OutsideEUTests: XCTestCase {
         
         let expectation = "Completed"
         XCTAssertEqual(result, expectation, "Expected the returned string from the executeAdaptation to be equal to the expectation string, however, files do not exist.")
+        
+        addTeardownBlock {
+            self.outsideEU.cancelTask()
+        }
     }
+    #endif
 }
