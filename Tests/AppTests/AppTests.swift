@@ -3,7 +3,7 @@ import XCTVapor
 
 final class AppTests: XCTestCase {
     func testGreeting() throws {
-        let app = App.testing()
+        let app = try App.testing()
         defer { app.shutdown() }
 
         try app.test(.GET, "", afterResponse: { res in
