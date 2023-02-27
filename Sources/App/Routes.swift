@@ -3,6 +3,7 @@ import Vapor
 
 struct Routes {
     let adaptationController =  AdaptationController()
+    let logger = Logger.shared
     
     func registerRoutes(app: Application) throws {
         app.get(use: index(request:))
@@ -12,6 +13,7 @@ struct Routes {
         app.get("runTask", "outsideEU", use: runOutsideEUBackgroundTask(request:))
         app.get("runTask", "sensitiveData", use: runSensitiveDataBackgroundTask(request:))
         app.get("help", use: help(request:))
+        app.get("saveLogs", use: saveLogToFile(request:))
         
         try app.register(collection: TodoController())
     }
@@ -20,17 +22,15 @@ struct Routes {
         return "Welcome to the thesis-server!"
     }
     
-    func configureOptionsText(request: Request) -> String {
-        let app = request.application
-        return app.routes.all.description
-    }
-    
     func register(request: Request) async throws -> String {
+        logger.add(message: "Attempting to register application on RADAR.")
         let app = request.application
         let result = try await adaptationController.registerThisAppOnRadar(app: app)
         if result != -1 {
+            logger.add(message: "Registered application on RADAR.")
             return "Completed and successfully registered application on radar."
         } else {
+            logger.add(message: "Error occurred when registering the application on RADAR.")
             return "An error occurred registering the application. Check radar for more information."
         }
     }
@@ -62,19 +62,29 @@ struct Routes {
     }
     
     func runOutsideEUBackgroundTask(request: Request) -> Bool {
+        logger.add(message: "Start the outsideEU getFilesConstantly task.")
         adaptationController.outsideEU.getFilesConstantly()
+        logger.add(message: "Started the outsideEU getFilesConstantly task.")
         return true
     }
     
     func runSensitiveDataBackgroundTask(request: Request) -> Bool {
+        logger.add(message: "Start the sensitive data getFilesConstantly task.")
         adaptationController.sensitiveData.getFilesConstantly()
+        logger.add(message: "Started the sensitive data getFilesConstantly task.")
         return true
     }
     
     func cancelRunningBackgroundTask(request: Request) -> Bool {
         adaptationController.outsideEU.cancelTask()
         adaptationController.sensitiveData.cancelTask()
+        logger.add(message: "Cancelled the running background tasks.")
         return true
+    }
+    
+    func saveLogToFile(request: Request) -> String {
+        logger.saveLogs()
+        return "Saved logs."
     }
     
     func help(request: Request) -> String {

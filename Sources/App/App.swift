@@ -13,10 +13,12 @@ public struct App {
         let app = Application(env)
         defer { app.shutdown() }
         
-        try Routes().registerRoutes(app: app)
+        let routes = Routes()
+        try routes.registerRoutes(app: app)
         configure(app: app)
         
         try app.run()
+        routes.logger.add(message: "Application started.")
     }
     
     static func testing() throws -> Application {
