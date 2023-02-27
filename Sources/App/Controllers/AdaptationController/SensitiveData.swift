@@ -41,6 +41,7 @@ class SensitiveData {
         
         // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
         if isOdd {
+            Logger.shared.add(message: "Started adaptating the system for the SensitiveData adaptation.")
             usesCloud.toggle()
             
             let adaptSystemTask = Task<Bool, any Error> {
@@ -56,6 +57,8 @@ class SensitiveData {
                 throw "SensitiveData adaptation was not performed."
             }
             
+            Logger.shared.add(message: "Finished adaptating the system for the SensitiveData adaptation.")
+            
             getFilesConstantly()
         }
         
@@ -66,11 +69,14 @@ class SensitiveData {
     /// Method that gets files constantly from the cloud.
     /// Checks the usesCloud property and selects the appropriate background task method.
     final func getFilesConstantly() {
+        Logger.shared.add(message: "Starting the SensitiveData getFilesConstantly task with usesCloud as \(usesCloud).")
         if usesCloud {
             getFilesConstantlyFromCloud()
         } else {
             getFilesConstantlyFromLocal()
         }
+        
+        Logger.shared.add(message: "Started the SensitiveData getFilesConstantly task with usesCloud as \(usesCloud).")
     }
     
     /// Method that gets files constantly from the cloud.
@@ -148,9 +154,10 @@ class SensitiveData {
     /// Method to cancel the current running task of getting files constantly.
     /// We first cancel the task and then once it's cancelled we set the task object to nil.
     final func cancelTask() {
-        print("Cancelling getFilesConstantly task.")
+        Logger.shared.add(message: "Cancelling the SensitiveData getFilesConstantly task for usesCloud as \(usesCloud).")
         task?.cancel()
         task = nil
+        Logger.shared.add(message: "Cancelled the SensitiveData getFilesConstantly task for usesCloud as \(usesCloud).")
     }
     
     /// Method that stores the bucket data onto the data files local directory.
@@ -159,6 +166,7 @@ class SensitiveData {
     /// Once the file is saved it is deleted from the bucket, as per adaptation description to move data from the cloud to local component.
     /// Returns `true` if no error is thrown.
     private func moveSensitiveDataFromCloudToLocal() async throws -> Bool {
+        Logger.shared.add(message: "Moving sensitive data from the cloud to the local component.")
         let bucketFiles = try await europeAWSManager.getAllFilesInBucket()
         
         for file in bucketFiles {
@@ -178,6 +186,8 @@ class SensitiveData {
             fatalError("Files still exist in the EU S3 AWS bucket.")
         }
         
+        Logger.shared.add(message: "Moved sensitive data from the cloud to the local component.")
+        
         return true
     }
     
@@ -187,6 +197,7 @@ class SensitiveData {
     /// Like with the `getFilesConstantlyUsingCloud`, we use the European AWS manager solely to simply this use case instead of tracking and randomising where files get located.
     /// Returns `true` if no error is thrown.
     private func storeSensitiveDataOnTheCloud() async throws -> Bool {
+        Logger.shared.add(message: "Storing sensitive data on the cloud.")
         let files = try localManager.listAllFilesInDataFilesDirectory() // Change to sensitive directory.
         for file in files {
             let (name, ext) = split(filename: file)
@@ -197,6 +208,7 @@ class SensitiveData {
             }
         }
         
+        Logger.shared.add(message: "Stored sensitive data on the cloud.")
         return true
     }
 }

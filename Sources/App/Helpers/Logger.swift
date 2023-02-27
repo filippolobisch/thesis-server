@@ -9,6 +9,9 @@ import Foundation
 
 /// Class to represent a Logger instance.
 class Logger {
+    /// The shared object of the logger.
+    static let shared = Logger()
+    
     /// The logs of the application.
     private(set) var logs = ""
     

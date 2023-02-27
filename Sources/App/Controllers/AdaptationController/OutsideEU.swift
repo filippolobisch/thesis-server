@@ -40,6 +40,7 @@ class OutsideEU {
         
         // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
         if isOdd {
+            Logger.shared.add(message: "Started adaptating the system for the OutsideEU adaptation.")
             storeDataOnlyInEU.toggle()
 
             let adaptSystemTask = Task<Bool, any Error> {
@@ -55,6 +56,7 @@ class OutsideEU {
                 throw "OutsideEU adaptation was not performed."
             }
             
+            Logger.shared.add(message: "Finished adaptating the system for the OutsideEU adaptation.")
             getFilesConstantly()
         }
         
@@ -66,6 +68,7 @@ class OutsideEU {
     /// To ensure fair use of both cloud regions, we use the `randomElement` method, if `storeDataOnlyInEU` is true, otherwise we use the European AWS manager solely.
     /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
     final func getFilesConstantly() {
+        Logger.shared.add(message: "Starting the OutsideEU getFilesConstantly task with storeDataOnlyInEU as \(storeDataOnlyInEU).")
         task = Task {
             let managers = [europeAWSManager, northAmericaAWSManager]
             let selectedManager = storeDataOnlyInEU ? europeAWSManager : managers.randomElement()!
@@ -95,14 +98,17 @@ class OutsideEU {
                 }
             } while !Task.isCancelled
         }
+        
+        Logger.shared.add(message: "Started the OutsideEU getFilesConstantly task with storeDataOnlyInEU as \(storeDataOnlyInEU).")
     }
     
     /// Method to cancel the current running task of getting files constantly.
     /// We first cancel the task and then once it's cancelled we set the task object to nil.
     final func cancelTask() {
-        print("Cancelling getFilesConstantly task.")
+        Logger.shared.add(message: "Cancelling the OutsideEU getFilesConstantly task for storeDataOnlyInEU as \(storeDataOnlyInEU).")
         task?.cancel()
         task = nil
+        Logger.shared.add(message: "Cancelled the OutsideEU getFilesConstantly task for storeDataOnlyInEU as \(storeDataOnlyInEU).")
     }
     
     /// Method that stores the European S3 bucket files also onto the North American S3 bucket.
@@ -110,6 +116,7 @@ class OutsideEU {
     /// Followed by this it is uploaded to the North American S3 bucket.
     /// Returns `true` if no error is thrown.
     private func storeDataOutsideEU() async throws -> Bool {
+        Logger.shared.add(message: "Storing data in the system component outside the european union.")
         let europeanBucketFiles = try await europeAWSManager.getAllFilesInBucket()
         
         for file in europeanBucketFiles {
@@ -121,6 +128,7 @@ class OutsideEU {
             }
         }
         
+        Logger.shared.add(message: "Stored data in the system component outside the european union.")
         return true
     }
     
@@ -129,6 +137,7 @@ class OutsideEU {
     /// Followed by this it is uploaded to the European S3 bucket and if the upload is successful, the file is deleted from the North American bucket.
     /// Returns `true` if no error is thrown.
     private func storeDataInEU() async throws -> Bool {
+        Logger.shared.add(message: "Storing data in north american region only in european union component.")
         let northAmericaBucketFiles = try await northAmericaAWSManager.getAllFilesInBucket()
         
         for file in northAmericaBucketFiles {
@@ -150,6 +159,7 @@ class OutsideEU {
             fatalError("Files still exist in the US S3 AWS bucket.")
         }
         
+        Logger.shared.add(message: "Stored data in north american region only in european union component.")
         return true
     }
 }

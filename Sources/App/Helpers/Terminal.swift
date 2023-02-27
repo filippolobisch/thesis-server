@@ -26,12 +26,14 @@ class Terminal {
     /// This method creates a new process and uses the `-c` argument to execute the proper command.
     @discardableResult
     func shell(_ command: String) throws -> String {
+        Logger.shared.add(message: "Starting process with the following command: \(command).")
         if pid > 1000 {
             try terminate()
         }
         
         let process = try Process.run(URL(fileURLWithPath: urlPath), arguments: ["-c", command])
         pid = Int(process.processIdentifier)
+        Logger.shared.add(message: "Started process with pid \(pid + 1).")
         return "Process task successfully started."
     }
     
@@ -49,9 +51,12 @@ class Terminal {
     /// Method to kill the running process.
     @discardableResult
     func terminate() throws -> Bool {
+        Logger.shared.add(message: "Terminating process with pid \(pid + 1)")
+        let previousPID = pid + 1
         let process = try Process.run(URL(fileURLWithPath: urlPath), arguments: ["-c", "kill -9 \(pid + 1)"])
         process.waitUntilExit()
         pid = -1000
+        Logger.shared.add(message: "Process with pid \(previousPID) terminated.")
         return true
     }
 }

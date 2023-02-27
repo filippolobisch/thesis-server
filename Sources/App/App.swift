@@ -1,3 +1,4 @@
+import Foundation
 import Vapor
 import Fluent
 import FluentPostgresDriver
@@ -12,22 +13,25 @@ public struct App {
         let app = Application(env)
         defer { app.shutdown() }
         
-        try registerRoutes(app: app)
+        let routes = Routes()
+        try routes.registerRoutes(app: app)
         configure(app: app)
         
         try app.run()
+        routes.logger.add(message: "Application started.")
     }
     
-    static func registerRoutes(app: Application) throws {
-        app.get(use: Self.index)
-        
-        try app.register(collection: TodoController())
+    static func testing() throws -> Application {
+        let app = Application(.testing)
+        try Routes().registerRoutes(app: app)
+        configure(app: app)
+        return app
     }
-    
-    static func index(request: Request) async throws -> String {
-        return "It works!"
-    }
-    
+}
+
+
+// MARK: - The configuration methods needed for the app
+extension App {
     static func configure(app: Application) {
         app.databases.use(.postgres(
             hostname: Environment.get("DATABASE_HOST") ?? "localhost",
@@ -38,12 +42,5 @@ public struct App {
         ), as: .psql)
 
         app.migrations.add(CreateTodo())
-    }
-    
-    static func testing() -> Application {
-        let app = Application(.testing)
-        configure(app: app)
-        app.get("", use: Self.index)
-        return app
     }
 }
