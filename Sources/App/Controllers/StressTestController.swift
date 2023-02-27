@@ -22,7 +22,7 @@ class StressTestController {
         do {
             _ = try terminal.shell(command)
         } catch {
-            print("")
+            print(error.localizedDescription)
         }
     }
 }

@@ -14,6 +14,7 @@ struct Routes {
         app.get("runTask", "sensitiveData", use: runSensitiveDataBackgroundTask(request:))
         app.get("help", use: help(request:))
         app.get("saveLogs", use: saveLogToFile(request:))
+        app.get("stress", use: stressTest(request:))
         
         try app.register(collection: TodoController())
     }
@@ -51,6 +52,12 @@ struct Routes {
         
         let result = adaptationController.root(data: data)
         return result
+    }
+    
+    func stressTest(request: Request) -> Bool {
+        guard let users = request.parameters.get("users"), let usersInt = Int(users) else { fatalError() }
+        StressTestController.shared.httpBenchmark(users: usersInt)
+        return true
     }
     
     func testCancelTaskLocal(request: Request) -> Bool {
