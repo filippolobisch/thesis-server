@@ -14,10 +14,10 @@ let package = Package(
     ],
     dependencies: [
         // 💧 A server-side Swift web framework.
-        .package(url: "https://github.com/vapor/vapor.git", from: "4.0.0"),
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.7.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.0.0"),
-        .package(url: "https://github.com/awslabs/aws-sdk-swift", from: "0.9.1")
+        .package(url: "https://github.com/awslabs/aws-sdk-swift", from: "0.13.0")
     ],
     targets: [
         .executableTarget(
