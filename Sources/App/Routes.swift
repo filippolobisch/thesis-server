@@ -22,8 +22,6 @@ struct Routes {
         app.get("help", use: help(request:))
         app.get("saveLogs", use: saveLogToFile(request:))
         app.get("stress", use: stressTest(request:))
-
-        try app.register(collection: TodoController())
     }
 
     /// The index page of this server.
