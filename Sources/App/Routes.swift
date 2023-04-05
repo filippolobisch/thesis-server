@@ -15,7 +15,7 @@ struct Routes {
     func registerRoutes(app: Application) throws {
         app.get(use: index(request:))
         app.get("register", use: register(request:))
-        app.post("execute", use: execute(request:))
+        app.on(.POST, "execute", body: .collect(maxSize: "2mb"), use: execute(request:))
         app.get("test", use: testCancelTaskLocal(request:))
         app.get("runTask", "outsideEU", use: runOutsideEUBackgroundTask(request:))
         app.get("runTask", "sensitiveData", use: runSensitiveDataBackgroundTask(request:))
