@@ -10,7 +10,6 @@ import Foundation
 import FoundationNetworking
 #endif
 import Vapor
-import Fluent
 
 /// The main adaptation controller.
 class AdaptationController {
