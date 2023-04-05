@@ -47,7 +47,7 @@ class AdaptationController {
         let modelData = try LocalFileManager().get(contentsOf: "model", withExtension: "json")
         
         let model = String(data: modelData, encoding: .utf8)
-        let httpBodyString = "\(String(describing: model))&\(monitoringURLString)&\(executionURLString)"
+        let httpBodyString = "\(model!)&\(monitoringURLString)&\(executionURLString)"
         
         guard let radarURL = URL(string: radarEndpoint) else {
             throw NetworkError.invalidURL
@@ -132,7 +132,7 @@ class AdaptationController {
             let result = try JSONSerialization.jsonObject(with: data)
             return result as? [String: Any] ?? [:] // If the casting to [String: Any] fails/returns nil, we return an empty dictionary.
         } catch {
-            fatalError("Converstion to json not working.")
+            fatalError(error.localizedDescription)
         }
     }
 }
