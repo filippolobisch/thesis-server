@@ -20,7 +20,7 @@ class SensitiveData {
     /// The task object that is used as a recurring task to generate system load.
     private(set) var task: Task<Void, Never>?
     
-    /// The european AWS manager.
+    /// The European AWS manager.
     let europeAWSManager = AWSS3Manager.europeManager
     
     /// The local file manager that can be used to
@@ -29,7 +29,7 @@ class SensitiveData {
     
     /// Main function that runs the sensitive data stored either in the cloud or local based on a conditional of `usesCloud`.
     /// Handles the execution of this adaptation between sensitive data being stored in the cloud or locally.
-    /// Toggles the property that determines where data is stored, everytime the adaptation is executed.
+    /// Toggles the property that determines where data is stored, every time the adaptation is executed.
     /// It then handles the appropriate adaptation case for the new `usesCloud` value.
     /// Once the adaptation is performed it calls the appropriate `getFilesConstantly`method to create a constant workload, based on the new `usesCloud` value.
     /// Returns the "completed" string if no error is thrown and the adaptation was successfully executed.
@@ -41,7 +41,7 @@ class SensitiveData {
         
         // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
         if isOdd {
-            Logger.shared.add(message: "Started adaptating the system for the SensitiveData adaptation.")
+            Logger.shared.add(message: "Started adapting the system for the SensitiveData adaptation.")
             usesCloud.toggle()
             
             let adaptSystemTask = Task<Bool, any Error> {
@@ -57,7 +57,7 @@ class SensitiveData {
                 throw "SensitiveData adaptation was not performed."
             }
             
-            Logger.shared.add(message: "Finished adaptating the system for the SensitiveData adaptation.")
+            Logger.shared.add(message: "Finished adapting the system for the SensitiveData adaptation.")
             
             getFilesConstantly()
         }

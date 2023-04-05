@@ -18,10 +18,10 @@ enum AWSError: String, Error {
 /// A struct object used as an intermediate interface to handle methods of downloading, uploading and deleting files of an AWS S3 bucket.
 struct AWSS3Manager {
     
-    /// The AWS S3 manager instance to manager files hosted in the S3 bucket in the european region.
+    /// The AWS S3 manager instance to manager files hosted in the S3 bucket in the European region.
     static let europeManager = AWSS3Manager(bucketName: Constants.euS3BucketName.rawValue, region: .euCentral1)
     
-    /// The AWS S3 manager instance to manager files hosted in the S3 bucket in the north american region.
+    /// The AWS S3 manager instance to manager files hosted in the S3 bucket in the North American region.
     static let northAmericaManager = AWSS3Manager(bucketName: Constants.naS3BucketName.rawValue, region: .usEast2)
     
     /// The name of the bucket.
@@ -33,7 +33,7 @@ struct AWSS3Manager {
     /// The AWS S3 client object used to make requests.
     let client: S3Client
     
-    /// The local file manager to occassionally get or save files to local storage.
+    /// The local file manager to occasionally get or save files to local storage.
     let localManager = LocalFileManager()
     
     

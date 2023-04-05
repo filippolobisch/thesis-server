@@ -20,15 +20,15 @@ class OutsideEU {
     /// The task object that is used as a recurring task to generate system load.
     private(set) var task: Task<Void, Never>?
     
-    /// The european AWS manager.
+    /// The European AWS manager.
     let europeAWSManager = AWSS3Manager.europeManager
     
-    /// The north american AWS manager.
+    /// The North American AWS manager.
     let northAmericaAWSManager = AWSS3Manager.northAmericaManager
     
     
     /// Handles the execution of this adaptation between solely EU component and both regions.
-    /// Toggles the property that determines where data is stored, everytime the adaptation is executed.
+    /// Toggles the property that determines where data is stored, every time the adaptation is executed.
     /// It then handles the appropriate adaptation case for the new `storeDataOnlyInEU` value.
     /// Once the adaptation is performed it calls the `getFilesConstantly` method to create a constant workload.
     /// Returns the "completed" string if no error is thrown and the adaptation was successfully executed.
@@ -40,7 +40,7 @@ class OutsideEU {
         
         // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
         if isOdd {
-            Logger.shared.add(message: "Started adaptating the system for the OutsideEU adaptation.")
+            Logger.shared.add(message: "Started adapting the system for the OutsideEU adaptation.")
             storeDataOnlyInEU.toggle()
 
             let adaptSystemTask = Task<Bool, any Error> {
@@ -56,7 +56,7 @@ class OutsideEU {
                 throw "OutsideEU adaptation was not performed."
             }
             
-            Logger.shared.add(message: "Finished adaptating the system for the OutsideEU adaptation.")
+            Logger.shared.add(message: "Finished adapting the system for the OutsideEU adaptation.")
             getFilesConstantly()
         }
         
@@ -116,7 +116,7 @@ class OutsideEU {
     /// Followed by this it is uploaded to the North American S3 bucket.
     /// Returns `true` if no error is thrown.
     private func storeDataOutsideEU() async throws -> Bool {
-        Logger.shared.add(message: "Storing data in the system component outside the european union.")
+        Logger.shared.add(message: "Storing data in the system component outside the European union.")
         let europeanBucketFiles = try await europeAWSManager.getAllFilesInBucket()
         
         for file in europeanBucketFiles {
@@ -137,7 +137,7 @@ class OutsideEU {
     /// Followed by this it is uploaded to the European S3 bucket and if the upload is successful, the file is deleted from the North American bucket.
     /// Returns `true` if no error is thrown.
     private func storeDataInEU() async throws -> Bool {
-        Logger.shared.add(message: "Storing data in north american region only in european union component.")
+        Logger.shared.add(message: "Storing data in North American region only in european union component.")
         let northAmericaBucketFiles = try await northAmericaAWSManager.getAllFilesInBucket()
         
         for file in northAmericaBucketFiles {
@@ -159,7 +159,7 @@ class OutsideEU {
             fatalError("Files still exist in the US S3 AWS bucket.")
         }
         
-        Logger.shared.add(message: "Stored data in north american region only in european union component.")
+        Logger.shared.add(message: "Stored data in North American region only in European union component.")
         return true
     }
 }

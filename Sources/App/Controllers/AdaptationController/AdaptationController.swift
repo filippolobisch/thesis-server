@@ -24,11 +24,11 @@ class AdaptationController {
     private let radarIP = "http://127.0.0.1:7770"
     
     /// The outsideEU object to perform calls to the adaptation.
-    /// This is needed to ensure that everytime the adaptation is called the properties that need to updated don't reset.
+    /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
     let outsideEU = OutsideEU()
     
     /// The sensitiveData object to perform calls to the adaptation.
-    /// This is needed to ensure that everytime the adaptation is called the properties that need to updated don't reset.
+    /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
     let sensitiveData = SensitiveData()
     
     
@@ -87,7 +87,7 @@ class AdaptationController {
     }
     
     /// The main function of this adaptation controller.
-    /// Once the data is converted we perform type-casting operations to get the informaiton in a more appropriate format for our server.
+    /// Once the data is converted we perform type-casting operations to get the information in a more appropriate format for our server.
     /// Then we retrieve each adaptation that needs to be execute and call the appropriate method based on it.
     /// We return true is no error if thrown and everything proceeds successfully.
     final func root(data dataString: String) -> Bool {

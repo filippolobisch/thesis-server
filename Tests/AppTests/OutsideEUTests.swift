@@ -40,7 +40,7 @@ final class OutsideEUTests: XCTestCase {
     #if os(macOS)
     /// Tests the executeAdaptation method of the OutsideEU class when an odd number value is passed for the parameter numberOfTimesToExecute.
     /// We ensure that there is a change in the `storeDataOnlyInEU` property (from false to true).
-    /// We also ensure that the correct changes to the system are performed (removing content from north american bucket), to verify that the adaptation executes as we expect.
+    /// We also ensure that the correct changes to the system are performed (removing content from North American bucket), to verify that the adaptation executes as we expect.
     /// Lastly we reset the changes that were made to the system. Since we are dealing with a single file we upload that file to the AWS bucket.
     func testOddNumberOfTimesToExecuteAdaptation() async throws {
         XCTAssertFalse(outsideEU.storeDataOnlyInEU, "Expected 'storeDataOnlyInEU' property to be false when starting the execution, however, the property is true.")

@@ -6,7 +6,7 @@ struct Routes {
     /// The adaptation controller instance. We use a property so that it is not re-created each time an adaptation is required.
     let adaptationController =  AdaptationController()
 
-    /// The custom logger object used to write and store important messages of what is occuring.
+    /// The custom logger object used to write and store important messages of what is occurring.
     let logger = Logger.shared
     
     
