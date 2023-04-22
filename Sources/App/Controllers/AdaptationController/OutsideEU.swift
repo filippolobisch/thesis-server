@@ -18,7 +18,7 @@ class OutsideEU {
     }
     
     /// The task object that is used as a recurring task to generate system load.
-    private(set) var task: Task<Void, Never>?
+    private(set) var task: Task<Void, any Error>?
     
     /// The European AWS manager.
     let europeAWSManager = AWSS3Manager.europeManager
@@ -34,69 +34,50 @@ class OutsideEU {
     /// Returns the "completed" string if no error is thrown and the adaptation was successfully executed.
     /// - Parameters:
     ///   - model: The model of the system. (Unused).
-    ///   - numberOfTimesToExecute: The number of times to execute this adaptation.
-    final func executeAdaptation(model: String, numberOfTimesToExecute: Int) async throws -> String {
-        let isOdd = !numberOfTimesToExecute.isMultiple(of: 2)
+    final func executeAdaptation(model: String) async throws -> String {
+        Logger.shared.add(message: "Started adapting the system for the OutsideEU adaptation.")
+        storeDataOnlyInEU.toggle()
         
-        // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
-        if isOdd {
-            Logger.shared.add(message: "Started adapting the system for the OutsideEU adaptation.")
-            storeDataOnlyInEU.toggle()
-
-            let adaptSystemTask = Task<Bool, any Error> {
-                if storeDataOnlyInEU {
-                    return try await storeDataInEU()
-                } else {
-                    return try await storeDataOutsideEU()
-                }
-            }
-            
-            let didAdapt = try await adaptSystemTask.value
-            guard didAdapt else {
-                throw "OutsideEU adaptation was not performed."
-            }
-            
-            Logger.shared.add(message: "Finished adapting the system for the OutsideEU adaptation.")
-            getFilesConstantly()
+        var systemDidAdapt = false
+        if storeDataOnlyInEU {
+            systemDidAdapt = try await storeData(from: northAmericaAWSManager, to: europeAWSManager)
+        } else {
+            systemDidAdapt = try await storeData(from: europeAWSManager, to: northAmericaAWSManager)
         }
         
+        guard systemDidAdapt else {
+            throw "OutsideEU adaptation was not performed."
+        }
+        
+        Logger.shared.add(message: "Finished adapting the system for the OutsideEU adaptation.")
+        try await getFilesConstantly()
         return "Completed"
     }
     
     /// Method that gets files constantly.
-    /// Runs every two seconds to ensure that it creates a constant workload on the system.
-    /// To ensure fair use of both cloud regions, we use the `randomElement` method, if `storeDataOnlyInEU` is true, otherwise we use the European AWS manager solely.
-    /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
-    final func getFilesConstantly() {
+    /// If `storeDataOnlyInEU` is true we use the European AWS manager solely, otherwise we use the North American AWS manager solely.
+    /// Furthermore, we download all files in the chosen bucket, concurrently.
+    final func getFilesConstantly() async throws {
         Logger.shared.add(message: "Starting the OutsideEU getFilesConstantly task with storeDataOnlyInEU as \(storeDataOnlyInEU).")
-        task = Task {
-            let managers = [europeAWSManager, northAmericaAWSManager]
-            let selectedManager = storeDataOnlyInEU ? europeAWSManager : managers.randomElement()!
-            
-            var files: [String] = []
-            do {
-                files = try await europeAWSManager.getAllFilesInBucket()
-            } catch {
-                print(error.localizedDescription)
-            }
-            
-            repeat {
-                do {
-                    guard let selectedFileKey = files.randomElement() else {
-                        throw "Could not retrieve random element from the received file names of the bucket."
+        let selectedManager = storeDataOnlyInEU ? europeAWSManager : northAmericaAWSManager
+        let files = try await selectedManager.getAllFilesInBucket()
+        
+        task = Task<Void, any Error> {
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                if Task.isCancelled {
+                    group.cancelAll()
+                }
+
+                while !Task.isCancelled {
+                    for file in files {
+                        _ = group.addTaskUnlessCancelled {
+                            _ = try await selectedManager.download(fileKey: file)
+                        }
                     }
-                    
-                    _ = try await selectedManager.download(fileKey: selectedFileKey)
-                } catch {
-                    print(error.localizedDescription)
+
+                    try await group.waitForAll()
                 }
-                
-                do {
-                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
-                } catch {
-                    print(error.localizedDescription)
-                }
-            } while !Task.isCancelled
+            }
         }
         
         Logger.shared.add(message: "Started the OutsideEU getFilesConstantly task with storeDataOnlyInEU as \(storeDataOnlyInEU).")
@@ -111,55 +92,38 @@ class OutsideEU {
         Logger.shared.add(message: "Cancelled the OutsideEU getFilesConstantly task for storeDataOnlyInEU as \(storeDataOnlyInEU).")
     }
     
-    /// Method that stores the European S3 bucket files also onto the North American S3 bucket.
-    /// First the files in the European bucket are retrieved, with their data being downloaded soon after.
-    /// Followed by this it is uploaded to the North American S3 bucket.
-    /// Returns `true` if no error is thrown.
-    private func storeDataOutsideEU() async throws -> Bool {
-        Logger.shared.add(message: "Storing data in the system component outside the European union.")
-        let europeanBucketFiles = try await europeAWSManager.getAllFilesInBucket()
+    /// Method that moves the data stored in an origin bucket to a provided destination bucket.
+    /// First the files in the origin bucket are retrieved, with their data being downloaded soon after.
+    /// Followed by this it is uploaded to the destination S3 bucket.
+    /// Returns `true` if no error is thrown.    
+    private func storeData(from originBucket: AWSS3Manager, to destinationBucket: AWSS3Manager) async throws -> Bool {
+        Logger.shared.add(message: "Storing data from the \(originBucket.regionName) region only in the \(destinationBucket.regionName).")
+        let files = try await originBucket.getAllFilesInBucket()
         
-        for file in europeanBucketFiles {
-            let fileData = try await europeAWSManager.download(fileKey: file)
-            let fileUploaded = try await northAmericaAWSManager.upload(data: fileData, using: file)
-            
-            guard fileUploaded else {
-                fatalError("Could not upload file to bucket.")
-            }
-        }
-        
-        Logger.shared.add(message: "Stored data in the system component outside the european union.")
-        return true
-    }
-    
-    /// Method that stores the North American S3 bucket files onto the European S3 bucket.
-    /// First the files in the North American bucket are retrieved, with their data being downloaded soon after.
-    /// Followed by this it is uploaded to the European S3 bucket and if the upload is successful, the file is deleted from the North American bucket.
-    /// Returns `true` if no error is thrown.
-    private func storeDataInEU() async throws -> Bool {
-        Logger.shared.add(message: "Storing data in North American region only in european union component.")
-        let northAmericaBucketFiles = try await northAmericaAWSManager.getAllFilesInBucket()
-        
-        for file in northAmericaBucketFiles {
-            let fileData = try await northAmericaAWSManager.download(fileKey: file)
-            let fileUploaded = try await europeAWSManager.upload(data: fileData, using: file)
-            
-            guard fileUploaded else {
-                fatalError("Could not upload file to bucket.")
+        let result = try await withThrowingTaskGroup(of: Bool.self) { group in
+            for file in files {
+                group.addTask {
+                    let fileData = try await originBucket.download(fileKey: file)
+                    let didUploadFile = try await destinationBucket.upload(data: fileData, using: file)
+                    guard didUploadFile else { throw "File was not uploaded to S3 bucket \(destinationBucket)." }
+                    
+                    let didDeleteFile = try await originBucket.delete(fileKey: file)
+                    guard didDeleteFile else { throw "File was not deleted from S3 bucket \(originBucket)." }
+                    return true
+                }
             }
             
-            let fileDeleted = try await northAmericaAWSManager.delete(fileKey: file)
-            guard fileDeleted else {
-                fatalError("Could not delete file from bucket.")
+            var results: [Bool] = []
+            for try await result in group {
+                results.append(result)
             }
+            
+            Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
+            return results.filter { $0 == true }.count == files.count
         }
         
-        let northAmericaBucketFilesAfterDeletion = try await northAmericaAWSManager.getAllFilesInBucket()
-        guard northAmericaBucketFilesAfterDeletion.isEmpty else {
-            fatalError("Files still exist in the US S3 AWS bucket.")
-        }
-        
-        Logger.shared.add(message: "Stored data in North American region only in European union component.")
+        guard result else { throw "Not all files where moved to the destination bucket \(destinationBucket)." }
+        Logger.shared.add(message: "Stored data from the \(originBucket.regionName) region only in the \(destinationBucket.regionName).")
         return true
     }
 }

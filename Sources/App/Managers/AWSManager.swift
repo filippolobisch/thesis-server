@@ -37,6 +37,17 @@ struct AWSS3Manager {
     let localManager = LocalFileManager()
     
     
+    /// The region name of the bucket.
+    var regionName: String {
+        switch region {
+        case .usEast2:
+            return "North American"
+        default:
+            return "European Union"
+        }
+    }
+    
+    
     /// The initializer of the `AWSS3Manager`.
     /// - Parameters:
     ///   - bucketName: The name of the bucket.

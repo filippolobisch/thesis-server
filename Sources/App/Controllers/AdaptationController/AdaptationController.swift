@@ -92,27 +92,28 @@ class AdaptationController {
     /// We return true is no error if thrown and everything proceeds successfully.
     final func root(data dataString: String) -> Bool {
         let data = convert(data: dataString)
-        guard let model = data["model"] as? String, let adaptations = data["adaptations"] as? [Int] else { return false }
+        guard let adaptations = data["adaptations"] as? [Int] else { return false }
         let adaptationsCount = Dictionary(adaptations.map { ($0, 1) }, uniquingKeysWith: +) // Create dictionary from the adaptation keys, and removes duplicates.
         let adaptationKeys = adaptationsCount.keys
         
         for key in adaptationKeys {
-            let numberOfTimesToExecute = adaptationsCount[key] ?? 1
             switch key {
             case 1: // EU
                 Task {
                     do {
-                        _ = try await outsideEU.executeAdaptation(model: model, numberOfTimesToExecute: numberOfTimesToExecute)
+                        _ = try await outsideEU.executeAdaptation(model: "")
                     } catch {
-                        fatalError("An error occurred inside the outsideEU main adaptation method.")
+                        Logger.shared.saveLogs()
+                        fatalError("An error occurred inside the outsideEU main adaptation method. \(error.localizedDescription)")
                     }
                 }
             case 2: // SensitiveData
                 Task {
                     do {
-                        _ = try await sensitiveData.executeAdaptation(model: model, numberOfTimesToExecute: numberOfTimesToExecute)
+                        _ = try await sensitiveData.executeAdaptation(model: "")
                     } catch {
-                        fatalError("An error occurred inside the sensitiveData main adaptation method.")
+                        Logger.shared.saveLogs()
+                        fatalError("An error occurred inside the sensitiveData main adaptation method. \(error.localizedDescription)")
                     }
                 }
             default:
