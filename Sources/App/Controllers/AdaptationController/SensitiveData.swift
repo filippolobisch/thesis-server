@@ -18,9 +18,9 @@ class SensitiveData {
     }
     
     /// The task object that is used as a recurring task to generate system load.
-    private(set) var task: Task<Void, Never>?
+    private(set) var task: Task<Void, any Error>?
     
-    /// The european AWS manager.
+    /// The European AWS manager.
     let europeAWSManager = AWSS3Manager.europeManager
     
     /// The local file manager that can be used to
@@ -29,86 +29,68 @@ class SensitiveData {
     
     /// Main function that runs the sensitive data stored either in the cloud or local based on a conditional of `usesCloud`.
     /// Handles the execution of this adaptation between sensitive data being stored in the cloud or locally.
-    /// Toggles the property that determines where data is stored, everytime the adaptation is executed.
+    /// Toggles the property that determines where data is stored, every time the adaptation is executed.
     /// It then handles the appropriate adaptation case for the new `usesCloud` value.
     /// Once the adaptation is performed it calls the appropriate `getFilesConstantly`method to create a constant workload, based on the new `usesCloud` value.
     /// Returns the "completed" string if no error is thrown and the adaptation was successfully executed.
     /// - Parameters:
     ///   - model: The model of the system. (Unused).
-    ///   - numberOfTimesToExecute: The number of times to execute this adaptation.
-    final func executeAdaptation(model: String, numberOfTimesToExecute: Int) async throws -> String {
-        let isOdd = !numberOfTimesToExecute.isMultiple(of: 2)
+    final func executeAdaptation(model: String) async throws -> String {
+        Logger.shared.add(message: "Started adapting the system for the SensitiveData adaptation.")
+        usesCloud.toggle()
         
-        // We only adapt the system if the number of times to execute is odd. This is because if it is even it is as if nothing had occurred.
-        if isOdd {
-            Logger.shared.add(message: "Started adaptating the system for the SensitiveData adaptation.")
-            usesCloud.toggle()
-            
-            let adaptSystemTask = Task<Bool, any Error> {
-                if usesCloud {
-                    return try await storeSensitiveDataOnTheCloud()
-                } else {
-                    return try await moveSensitiveDataFromCloudToLocal()
-                }
-            }
-            
-            let didAdapt = try await adaptSystemTask.value
-            guard didAdapt else {
-                throw "SensitiveData adaptation was not performed."
-            }
-            
-            Logger.shared.add(message: "Finished adaptating the system for the SensitiveData adaptation.")
-            
-            getFilesConstantly()
+        var systemDidAdapt = false
+        if usesCloud {
+            systemDidAdapt = try await storeSensitiveDataOnTheCloud()
+        } else {
+            systemDidAdapt = try await moveSensitiveDataFromCloudToLocal()
         }
         
+        guard systemDidAdapt else {
+            throw "SensitiveData adaptation was not performed."
+        }
+        
+        Logger.shared.add(message: "Finished adapting the system for the SensitiveData adaptation.")
+        try await getFilesConstantly()
         return "Completed"
     }
     
     
     /// Method that gets files constantly from the cloud.
     /// Checks the usesCloud property and selects the appropriate background task method.
-    final func getFilesConstantly() {
+    final func getFilesConstantly() async throws {
         Logger.shared.add(message: "Starting the SensitiveData getFilesConstantly task with usesCloud as \(usesCloud).")
         if usesCloud {
-            getFilesConstantlyFromCloud()
+            try await getFilesConstantlyFromCloud()
         } else {
-            getFilesConstantlyFromLocal()
+            try await getFilesConstantlyFromLocal()
         }
         
         Logger.shared.add(message: "Started the SensitiveData getFilesConstantly task with usesCloud as \(usesCloud).")
     }
     
     /// Method that gets files constantly from the cloud.
-    /// Runs every two seconds to ensure that it creates a constant workload on the system.
     /// We use the European AWS manager solely to simply this use case instead of tracking and randomising where files get located.
-    /// Furthermore, we download a random file from the bucket to ensure that no bias is taken.
-    private func getFilesConstantlyFromCloud() {
+    /// Furthermore, we download all files to ensure no bias is taken. Once again, concurrently.
+    private func getFilesConstantlyFromCloud() async throws {
+        let files = try await europeAWSManager.getAllFilesInBucket()
+        
         task = Task {
-            var files: [String] = []
-            do {
-                files = try await europeAWSManager.getAllFilesInBucket()
-            } catch {
-                print(error.localizedDescription)
-            }
-            
-            repeat {
-                do {
-                    guard let selectedFileKey = files.randomElement() else {
-                        throw "Could not retrieve random element from the received file names of the bucket."
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                if Task.isCancelled {
+                    group.cancelAll()
+                }
+
+                while !Task.isCancelled {
+                    for file in files {
+                        _ = group.addTaskUnlessCancelled {
+                            _ = try await self.europeAWSManager.download(fileKey: file)
+                        }
                     }
-                    
-                    _ = try await europeAWSManager.download(fileKey: selectedFileKey)
-                } catch {
-                    print(error.localizedDescription)
+
+                    try await group.waitForAll()
                 }
-                
-                do {
-                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
-                } catch {
-                    print(error.localizedDescription)
-                }
-            } while !Task.isCancelled
+            }
         }
     }
     
@@ -125,29 +107,27 @@ class SensitiveData {
     }
     
     /// Method that gets files constantly from local directory.
-    /// Runs every two seconds to ensure that it creates a constant workload on the system.
-    /// Since we store all files always in the `data_files` directory we check that directory and read a randomly selected file from there.
-    private func getFilesConstantlyFromLocal() {
+    /// Since we store all files always in the `data_files` directory we check that directory and read files from there, concurrently.
+    private func getFilesConstantlyFromLocal() async throws {
+        let files = try localManager.listAllFilesInDataFilesDirectory()
+        
         task = Task {
-            repeat {
-                do {
-                    let files = try localManager.listAllFilesInDataFilesDirectory()
-                    guard let selectedFileKey = files.randomElement() else {
-                        throw "Could not retrieve random element from the received file names of local directory."
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                if Task.isCancelled {
+                    group.cancelAll()
+                }
+
+                while !Task.isCancelled {
+                    for file in files {
+                        _ = group.addTaskUnlessCancelled {
+                            let (filename, ext) = self.split(filename: file)
+                            _ = try self.localManager.get(contentsOf: filename, withExtension: ext)
+                        }
                     }
-                    
-                    let (filename, ext) = split(filename: selectedFileKey)
-                    _ = try localManager.get(contentsOf: filename, withExtension: ext)
-                } catch {
-                    print(error.localizedDescription)
+
+                    try await group.waitForAll()
                 }
-                
-                do {
-                    try await Task.sleep(nanoseconds: UInt64(2 * 1_000_000_000))
-                } catch {
-                    print(error.localizedDescription)
-                }
-            } while !Task.isCancelled
+            }
         }
     }
     
@@ -161,53 +141,74 @@ class SensitiveData {
     }
     
     /// Method that stores the bucket data onto the data files local directory.
-    /// We retrieve the files from the European S3 bucket (one by one) with their data being downloaded.
+    /// We retrieve the files from the European S3 bucket, in parallel, with their data being downloaded.
     /// Followed by this it is saved to local directory into the `data_files` directory.
     /// Once the file is saved it is deleted from the bucket, as per adaptation description to move data from the cloud to local component.
     /// Returns `true` if no error is thrown.
     private func moveSensitiveDataFromCloudToLocal() async throws -> Bool {
         Logger.shared.add(message: "Moving sensitive data from the cloud to the local component.")
-        let bucketFiles = try await europeAWSManager.getAllFilesInBucket()
+        let files = try await europeAWSManager.getAllFilesInBucket()
         
-        for file in bucketFiles {
-            let fileData = try await europeAWSManager.download(fileKey: file)
-            let (filename, ext) = self.split(filename: file)
-            
-            try localManager.save(data: fileData, toResource: filename, withExtension: ext)
-            
-            let fileDeleted = try await europeAWSManager.delete(fileKey: file)
-            guard fileDeleted else {
-                fatalError("Could not delete file from bucket.")
+        let result = try await withThrowingTaskGroup(of: Bool.self) { group in
+            for file in files {
+                group.addTask {
+                    let fileData = try await self.europeAWSManager.download(fileKey: file)
+                    let (filename, ext) = self.split(filename: file)
+                    
+                    try self.localManager.save(data: fileData, toResource: filename, withExtension: ext)
+                    
+                    let didDeleteFile = try await self.europeAWSManager.delete(fileKey: file)
+                    guard didDeleteFile else { throw "Could not delete file from bucket." }
+                    return true
+                }
             }
+            
+            var results: [Bool] = []
+            for try await result in group {
+                results.append(result)
+            }
+            
+            Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
+            return results.filter { $0 == true }.count == files.count
         }
         
-        let remainingAWSBucketFiles = try await europeAWSManager.getAllFilesInBucket()
-        guard remainingAWSBucketFiles.isEmpty else {
-            fatalError("Files still exist in the EU S3 AWS bucket.")
-        }
-        
+        guard result else { throw "Not all files where moved from cloud storage to the local storage." }
         Logger.shared.add(message: "Moved sensitive data from the cloud to the local component.")
         
         return true
     }
     
     /// Method that stores the local file data onto the European S3 bucket.
-    /// We retrieve the files from the `data_files` directory (one by one), with their data being read.
+    /// We retrieve the files from the `data_files` directory, concurrently, with their data being read.
     /// Followed by this it is uploaded to the European S3 bucket.
     /// Like with the `getFilesConstantlyUsingCloud`, we use the European AWS manager solely to simply this use case instead of tracking and randomising where files get located.
     /// Returns `true` if no error is thrown.
     private func storeSensitiveDataOnTheCloud() async throws -> Bool {
         Logger.shared.add(message: "Storing sensitive data on the cloud.")
-        let files = try localManager.listAllFilesInDataFilesDirectory() // Change to sensitive directory.
-        for file in files {
-            let (name, ext) = split(filename: file)
-            let sensitiveDataUploaded = try await europeAWSManager.upload(resource: name, withExtension: ext)
-            
-            guard sensitiveDataUploaded else {
-                fatalError("Could not upload sensitive data to cloud.")
+        let files = try localManager.listAllFilesInDataFilesDirectory()
+        
+        let result = try await withThrowingTaskGroup(of: Bool.self) { group in
+            for file in files {
+                group.addTask {
+                    let (name, ext) = self.split(filename: file)
+                    let sensitiveDataUploaded = try await self.europeAWSManager.upload(resource: name, withExtension: ext)
+                    guard sensitiveDataUploaded else { throw "Could not upload sensitive data to cloud." }
+                    
+                    try self.localManager.delete(resource: name, withExtension: ext)
+                    return true
+                }
             }
+            
+            var results: [Bool] = []
+            for try await result in group {
+                results.append(result)
+            }
+            
+            Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
+            return results.filter { $0 == true }.count == files.count
         }
         
+        guard result else { throw "Not all files where moved from local storage to the cloud." }
         Logger.shared.add(message: "Stored sensitive data on the cloud.")
         return true
     }

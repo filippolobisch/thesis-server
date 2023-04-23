@@ -24,11 +24,11 @@ class AdaptationController {
     private let radarIP = "http://127.0.0.1:7770"
     
     /// The outsideEU object to perform calls to the adaptation.
-    /// This is needed to ensure that everytime the adaptation is called the properties that need to updated don't reset.
+    /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
     let outsideEU = OutsideEU()
     
     /// The sensitiveData object to perform calls to the adaptation.
-    /// This is needed to ensure that everytime the adaptation is called the properties that need to updated don't reset.
+    /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
     let sensitiveData = SensitiveData()
     
     
@@ -87,32 +87,33 @@ class AdaptationController {
     }
     
     /// The main function of this adaptation controller.
-    /// Once the data is converted we perform type-casting operations to get the informaiton in a more appropriate format for our server.
+    /// Once the data is converted we perform type-casting operations to get the information in a more appropriate format for our server.
     /// Then we retrieve each adaptation that needs to be execute and call the appropriate method based on it.
     /// We return true is no error if thrown and everything proceeds successfully.
     final func root(data dataString: String) -> Bool {
         let data = convert(data: dataString)
-        guard let model = data["model"] as? String, let adaptations = data["adaptations"] as? [Int] else { return false }
+        guard let adaptations = data["adaptations"] as? [Int] else { return false }
         let adaptationsCount = Dictionary(adaptations.map { ($0, 1) }, uniquingKeysWith: +) // Create dictionary from the adaptation keys, and removes duplicates.
         let adaptationKeys = adaptationsCount.keys
         
         for key in adaptationKeys {
-            let numberOfTimesToExecute = adaptationsCount[key] ?? 1
             switch key {
             case 1: // EU
                 Task {
                     do {
-                        _ = try await outsideEU.executeAdaptation(model: model, numberOfTimesToExecute: numberOfTimesToExecute)
+                        _ = try await outsideEU.executeAdaptation(model: "")
                     } catch {
-                        fatalError("An error occurred inside the outsideEU main adaptation method.")
+                        Logger.shared.saveLogs()
+                        fatalError("An error occurred inside the outsideEU main adaptation method. \(error.localizedDescription)")
                     }
                 }
             case 2: // SensitiveData
                 Task {
                     do {
-                        _ = try await sensitiveData.executeAdaptation(model: model, numberOfTimesToExecute: numberOfTimesToExecute)
+                        _ = try await sensitiveData.executeAdaptation(model: "")
                     } catch {
-                        fatalError("An error occurred inside the sensitiveData main adaptation method.")
+                        Logger.shared.saveLogs()
+                        fatalError("An error occurred inside the sensitiveData main adaptation method. \(error.localizedDescription)")
                     }
                 }
             default:

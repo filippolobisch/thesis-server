@@ -6,7 +6,7 @@ struct Routes {
     /// The adaptation controller instance. We use a property so that it is not re-created each time an adaptation is required.
     let adaptationController =  AdaptationController()
 
-    /// The custom logger object used to write and store important messages of what is occuring.
+    /// The custom logger object used to write and store important messages of what is occurring.
     let logger = Logger.shared
     
     
@@ -22,10 +22,11 @@ struct Routes {
         app.get("help", use: help(request:))
         app.get("saveLogs", use: saveLogToFile(request:))
         app.get("stress", use: stressTest(request:))
+        app.get("cancel", use: cancelRunningBackgroundTask(request:))
     }
 
     /// The index page of this server.
-    func index(request: Request) async throws -> String {
+    func index(request: Request) -> String {
         return "Welcome to the thesis-server!"
     }
 
@@ -82,18 +83,18 @@ struct Routes {
 
     /// Route that runs the outsideEU adaptation background task.
     /// Used primarily for testing purposes, however, can be called if the outsideEU background task should be started before any adaptation occurs.
-    func runOutsideEUBackgroundTask(request: Request) -> Bool {
+    func runOutsideEUBackgroundTask(request: Request) async throws -> Bool {
         logger.add(message: "Start the outsideEU getFilesConstantly task.")
-        adaptationController.outsideEU.getFilesConstantly()
+        try await adaptationController.outsideEU.getFilesConstantly()
         logger.add(message: "Started the outsideEU getFilesConstantly task.")
         return true
     }
 
     /// Route that runs the sensitiveData adaptation background task.
     /// Used primarily for testing purposes, however, can be called if the sensitiveData background task should be started before any adaptation occurs.
-    func runSensitiveDataBackgroundTask(request: Request) -> Bool {
+    func runSensitiveDataBackgroundTask(request: Request) async throws -> Bool {
         logger.add(message: "Start the sensitive data getFilesConstantly task.")
-        adaptationController.sensitiveData.getFilesConstantly()
+        try await adaptationController.sensitiveData.getFilesConstantly()
         logger.add(message: "Started the sensitive data getFilesConstantly task.")
         return true
     }
