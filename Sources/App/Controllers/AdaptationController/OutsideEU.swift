@@ -122,7 +122,7 @@ class OutsideEU {
             return results.filter { $0 == true }.count == files.count
         }
         
-        guard result else { throw "Not all files where moved to the destination bucket \(destinationBucket)." }
+        guard result else { throw "Not all files were moved to the destination bucket \(destinationBucket)." }
         Logger.shared.add(message: "Stored data from the \(originBucket.regionName) region only in the \(destinationBucket.regionName).")
         return true
     }
