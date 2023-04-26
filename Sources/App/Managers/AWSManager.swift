@@ -87,16 +87,13 @@ struct AWSS3Manager {
     /// Returns the result of whether the file was successfully uploaded to this bucket.
     /// - Parameters:
     ///   - data: The data to be uploaded to the bucket.
-    ///   - name: The name of the resource to upload.
-    ///   - ext: The file extension of the resource to upload.
+    ///   - filename: The name of the resource.
     func upload(data: Data, using filename: String) async throws -> Bool {
         let dataStream = ByteStream.from(data: data)
         
         let input = PutObjectInput(body: dataStream, bucket: bucketName, key: filename)
         _ = try await client.putObject(input: input)
-
-        let files = try await getAllFilesInBucket()
-        return files.contains(filename)
+        return true
     }
 
     
@@ -127,8 +124,6 @@ struct AWSS3Manager {
     public func delete(fileKey: String) async throws -> Bool {
         let deleteObjectInput = DeleteObjectInput(bucket: bucketName, key: fileKey)
         _ = try await client.deleteObject(input: deleteObjectInput)
-
-        let files = try await getAllFilesInBucket()
-        return !files.contains(fileKey)
+        return true
     }
 }
