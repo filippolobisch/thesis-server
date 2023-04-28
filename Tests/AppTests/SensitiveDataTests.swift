@@ -35,8 +35,7 @@ final class SensitiveDataTests: XCTestCase {
         
         XCTAssertNil(sensitiveData.task, "Expected the task to be nil signifying it was cancelled, however, the task is not nil meaning it is still active.")
     }
-
-    #if os(macOS)
+    
     /// Tests the executeAdaptation method of the SensitiveData class.
     /// We ensure that there is a change in the `usesCloud` property (from true to false).
     /// We also ensure that the correct changes to the system are performed (removing content from European bucket to local content), to verify that the adaptation executes as we expect.
@@ -55,5 +54,4 @@ final class SensitiveDataTests: XCTestCase {
             _ = try await self.sensitiveData.europeAWSManager.upload(resource: "Latex Cache", withExtension: "md")
         }
     }
-    #endif
 }
