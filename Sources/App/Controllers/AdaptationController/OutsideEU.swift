@@ -63,19 +63,9 @@ class OutsideEU {
         let files = try await selectedManager.getAllFilesInBucket()
         
         task = Task<Void, any Error> {
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                if Task.isCancelled {
-                    group.cancelAll()
-                }
-
-                while !Task.isCancelled {
-                    for file in files {
-                        _ = group.addTaskUnlessCancelled {
-                            _ = try await selectedManager.download(fileKey: file)
-                        }
-                    }
-
-                    try await group.waitForAll()
+            while !Task.isCancelled {
+                for file in files {
+                    _ = try await selectedManager.download(fileKey: file)
                 }
             }
         }
@@ -102,22 +92,14 @@ class OutsideEU {
     private func storeData(from originBucket: AWSS3Manager, to destinationBucket: AWSS3Manager) async throws -> Bool {
         Logger.shared.add(message: "Storing data from the \(originBucket.regionName) region only in the \(destinationBucket.regionName).")
         let files = try await originBucket.getAllFilesInBucket()
+        var results: [Bool] = []
         
-        let result = try await withThrowingTaskGroup(of: Bool.self) { group in
-            for file in files {
-                group.addTask {
-                    return try await self.move(file: file, from: originBucket, to: destinationBucket)
-                }
-            }
-            
-            var results: [Bool] = []
-            for try await result in group {
-                results.append(result)
-            }
-            
-            Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
-            return results.filter { $0 == true }.count == files.count
+        for file in files {
+            results.append(try await move(file: file, from: originBucket, to: destinationBucket))
         }
+        
+        Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
+        let result = results.filter { $0 == true }.count == files.count
         
         guard result else { throw "Not all files were moved to the destination bucket \(destinationBucket)." }
         Logger.shared.add(message: "Stored data from the \(originBucket.regionName) region only in the \(destinationBucket.regionName).")

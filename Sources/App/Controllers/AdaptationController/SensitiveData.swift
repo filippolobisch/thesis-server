@@ -76,19 +76,9 @@ class SensitiveData {
         let files = try await europeAWSManager.getAllFilesInBucket()
         
         task = Task {
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                if Task.isCancelled {
-                    group.cancelAll()
-                }
-
-                while !Task.isCancelled {
-                    for file in files {
-                        _ = group.addTaskUnlessCancelled {
-                            _ = try await self.europeAWSManager.download(fileKey: file)
-                        }
-                    }
-
-                    try await group.waitForAll()
+            while !Task.isCancelled {
+                for file in files {
+                    _ = try await europeAWSManager.download(fileKey: file)
                 }
             }
         }
@@ -112,20 +102,10 @@ class SensitiveData {
         let files = try localManager.listAllFilesInDataFilesDirectory()
         
         task = Task {
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                if Task.isCancelled {
-                    group.cancelAll()
-                }
-
-                while !Task.isCancelled {
-                    for file in files {
-                        _ = group.addTaskUnlessCancelled {
-                            let (filename, ext) = self.split(filename: file)
-                            _ = try self.localManager.get(contentsOf: filename, withExtension: ext)
-                        }
-                    }
-
-                    try await group.waitForAll()
+            while !Task.isCancelled {
+                for file in files {
+                    let (filename, ext) = split(filename: file)
+                    _ = try localManager.get(contentsOf: filename, withExtension: ext)
                 }
             }
         }
@@ -148,22 +128,14 @@ class SensitiveData {
     private func moveSensitiveDataFromCloudToLocal() async throws -> Bool {
         Logger.shared.add(message: "Moving sensitive data from the cloud to the local component.")
         let files = try await europeAWSManager.getAllFilesInBucket()
+        var results: [Bool] = []
         
-        let result = try await withThrowingTaskGroup(of: Bool.self) { group in
-            for file in files {
-                group.addTask {
-                    return try await self.moveFileToLocalStorage(file: file)
-                }
-            }
-            
-            var results: [Bool] = []
-            for try await result in group {
-                results.append(result)
-            }
-            
-            Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
-            return results.filter { $0 == true }.count == files.count
+        for file in files {
+            results.append(try await moveFileToLocalStorage(file: file))
         }
+        
+        Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
+        let result = results.filter { $0 == true }.count == files.count
         
         guard result else { throw "Not all files were moved from cloud storage to the local storage." }
         Logger.shared.add(message: "Moved sensitive data from the cloud to the local component.")
@@ -195,22 +167,14 @@ class SensitiveData {
     private func storeSensitiveDataOnTheCloud() async throws -> Bool {
         Logger.shared.add(message: "Storing sensitive data on the cloud.")
         let files = try localManager.listAllFilesInDataFilesDirectory()
+        var results: [Bool] = []
         
-        let result = try await withThrowingTaskGroup(of: Bool.self) { group in
-            for file in files {
-                group.addTask {
-                    return try await self.moveFileToTheCloud(file: file)
-                }
-            }
-            
-            var results: [Bool] = []
-            for try await result in group {
-                results.append(result)
-            }
-            
-            Logger.shared.add(message: "Results array == \(results). Bucket files == \(files)")
-            return results.filter { $0 == true }.count == files.count
+        for file in files {
+            results.append(try await moveFileToTheCloud(file: file))
         }
+        
+        Logger.shared.add(message: "Results array == \(results). Local files == \(files)")
+        let result = results.filter { $0 == true }.count == files.count
         
         guard result else { throw "Not all files were moved from local storage to the cloud." }
         Logger.shared.add(message: "Stored sensitive data on the cloud.")
