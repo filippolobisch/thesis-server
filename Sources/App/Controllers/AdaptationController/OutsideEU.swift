@@ -95,7 +95,10 @@ class OutsideEU {
     /// Method that moves the data stored in an origin bucket to a provided destination bucket.
     /// First the files in the origin bucket are retrieved, with their data being downloaded soon after.
     /// Followed by this it is uploaded to the destination S3 bucket.
-    /// Returns `true` if no error is thrown.    
+    /// Returns `true` if no error is thrown.
+    /// - Parameters:
+    ///   - originBucket: The bucket of origin containing the files that need to be moved.
+    ///   - destinationBucket: The destination bucket where the files need to be saved.
     private func storeData(from originBucket: AWSS3Manager, to destinationBucket: AWSS3Manager) async throws -> Bool {
         Logger.shared.add(message: "Storing data from the \(originBucket.regionName) region only in the \(destinationBucket.regionName).")
         let files = try await originBucket.getAllFilesInBucket()
@@ -103,13 +106,7 @@ class OutsideEU {
         let result = try await withThrowingTaskGroup(of: Bool.self) { group in
             for file in files {
                 group.addTask {
-                    let fileData = try await originBucket.download(fileKey: file)
-                    let didUploadFile = try await destinationBucket.upload(data: fileData, using: file)
-                    guard didUploadFile else { throw "File was not uploaded to S3 bucket \(destinationBucket)." }
-                    
-                    let didDeleteFile = try await originBucket.delete(fileKey: file)
-                    guard didDeleteFile else { throw "File was not deleted from S3 bucket \(originBucket)." }
-                    return true
+                    return try await self.move(file: file, from: originBucket, to: destinationBucket)
                 }
             }
             
@@ -122,8 +119,26 @@ class OutsideEU {
             return results.filter { $0 == true }.count == files.count
         }
         
-        guard result else { throw "Not all files where moved to the destination bucket \(destinationBucket)." }
+        guard result else { throw "Not all files were moved to the destination bucket \(destinationBucket)." }
         Logger.shared.add(message: "Stored data from the \(originBucket.regionName) region only in the \(destinationBucket.regionName).")
+        return true
+    }
+    
+    /// Moves a file from an origin bucket to a destination bucket.
+    /// The file is first downloaded from the origin bucket, followed by it being uploaded to the destination bucket.
+    /// It is then deleted from the originating bucket.
+    /// If everything succeeds, `true` is returned, otherwise, an error is thrown.
+    /// - Parameters:
+    ///   - file: The filename of the file to move.
+    ///   - originBucket: The bucket of origin containing the files that need to be moved.
+    ///   - destinationBucket: The destination bucket where the files need to be saved.
+    private func move(file: String, from originBucket: AWSS3Manager, to destinationBucket: AWSS3Manager) async throws -> Bool {
+        let fileData = try await originBucket.download(fileKey: file)
+        let didUploadFile = try await destinationBucket.upload(data: fileData, using: file)
+        guard didUploadFile else { throw "File was not uploaded to S3 bucket \(destinationBucket)." }
+        
+        let didDeleteFile = try await originBucket.delete(fileKey: file)
+        guard didDeleteFile else { throw "File was not deleted from S3 bucket \(originBucket)." }
         return true
     }
 }

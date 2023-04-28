@@ -15,14 +15,14 @@ let package = Package(
     dependencies: [
         // 💧 A server-side Swift web framework.
         .package(url: "https://github.com/vapor/vapor.git", from: "4.7.0"),
-        .package(url: "https://github.com/awslabs/aws-sdk-swift", from: "0.13.0")
+        .package(url: "https://github.com/soto-project/soto.git", from: "6.0.0")
     ],
     targets: [
         .executableTarget(
             name: "App",
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
-                .product(name: "AWSS3", package: "aws-sdk-swift")
+                .product(name: "SotoS3", package: "soto"),
             ],
             swiftSettings: [
                 // Enable better optimizations when building in Release configuration. Despite the use of

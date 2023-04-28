@@ -152,14 +152,7 @@ class SensitiveData {
         let result = try await withThrowingTaskGroup(of: Bool.self) { group in
             for file in files {
                 group.addTask {
-                    let fileData = try await self.europeAWSManager.download(fileKey: file)
-                    let (filename, ext) = self.split(filename: file)
-                    
-                    try self.localManager.save(data: fileData, toResource: filename, withExtension: ext)
-                    
-                    let didDeleteFile = try await self.europeAWSManager.delete(fileKey: file)
-                    guard didDeleteFile else { throw "Could not delete file from bucket." }
-                    return true
+                    return try await self.moveFileToLocalStorage(file: file)
                 }
             }
             
@@ -172,9 +165,25 @@ class SensitiveData {
             return results.filter { $0 == true }.count == files.count
         }
         
-        guard result else { throw "Not all files where moved from cloud storage to the local storage." }
+        guard result else { throw "Not all files were moved from cloud storage to the local storage." }
         Logger.shared.add(message: "Moved sensitive data from the cloud to the local component.")
         
+        return true
+    }
+    
+    /// Method to move the file to local storage.
+    /// The file is first retrieved from the AWS Bucket, and then saved to local storage.
+    /// After the save, it is deleted from the AWS bucket.
+    /// The method returns `true` if no error is thrown.
+    /// - Parameter file: The file to move to local storage.
+    private func moveFileToLocalStorage(file: String) async throws -> Bool {
+        let fileData = try await europeAWSManager.download(fileKey: file)
+        let (filename, ext) = split(filename: file)
+        
+        try localManager.save(data: fileData, toResource: filename, withExtension: ext)
+        
+        let didDeleteFile = try await europeAWSManager.delete(fileKey: file)
+        guard didDeleteFile else { throw "Could not delete file from bucket." }
         return true
     }
     
@@ -190,12 +199,7 @@ class SensitiveData {
         let result = try await withThrowingTaskGroup(of: Bool.self) { group in
             for file in files {
                 group.addTask {
-                    let (name, ext) = self.split(filename: file)
-                    let sensitiveDataUploaded = try await self.europeAWSManager.upload(resource: name, withExtension: ext)
-                    guard sensitiveDataUploaded else { throw "Could not upload sensitive data to cloud." }
-                    
-                    try self.localManager.delete(resource: name, withExtension: ext)
-                    return true
+                    return try await self.moveFileToTheCloud(file: file)
                 }
             }
             
@@ -208,8 +212,22 @@ class SensitiveData {
             return results.filter { $0 == true }.count == files.count
         }
         
-        guard result else { throw "Not all files where moved from local storage to the cloud." }
+        guard result else { throw "Not all files were moved from local storage to the cloud." }
         Logger.shared.add(message: "Stored sensitive data on the cloud.")
+        return true
+    }
+    
+    /// Method to move the file to local storage.
+    /// The file is first retrieved from local storage, and then saved to the AWS bucket.
+    /// It is then deleted from local storage is the upload is successful.
+    /// The method returns `true` if no error is thrown.
+    /// - Parameter file: The file to move to local storage.
+    private func moveFileToTheCloud(file: String) async throws -> Bool {
+        let (name, ext) = split(filename: file)
+        let sensitiveDataUploaded = try await europeAWSManager.upload(resource: name, withExtension: ext)
+        guard sensitiveDataUploaded else { throw "Could not upload sensitive data to cloud." }
+        
+        try localManager.delete(resource: name, withExtension: ext)
         return true
     }
 }

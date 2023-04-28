@@ -37,7 +37,6 @@ final class OutsideEUTests: XCTestCase {
     }
     
     
-    #if os(macOS)
     /// Tests the executeAdaptation method of the OutsideEU class.
     /// We ensure that there is a change in the `storeDataOnlyInEU` property (from false to true).
     /// We also ensure that the correct changes to the system are performed (removing content from North American bucket), to verify that the adaptation executes as we expect.
@@ -56,5 +55,4 @@ final class OutsideEUTests: XCTestCase {
             _ = try await self.outsideEU.northAmericaAWSManager.upload(resource: "Latex Cache", withExtension: "md")
         }
     }
-    #endif
 }

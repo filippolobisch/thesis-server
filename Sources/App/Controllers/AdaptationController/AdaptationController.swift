@@ -93,8 +93,7 @@ class AdaptationController {
     final func root(data dataString: String) -> Bool {
         let data = convert(data: dataString)
         guard let adaptations = data["adaptations"] as? [Int] else { return false }
-        let adaptationsCount = Dictionary(adaptations.map { ($0, 1) }, uniquingKeysWith: +) // Create dictionary from the adaptation keys, and removes duplicates.
-        let adaptationKeys = adaptationsCount.keys
+        let adaptationKeys = Array(Set(adaptations)).sorted()
         
         for key in adaptationKeys {
             switch key {

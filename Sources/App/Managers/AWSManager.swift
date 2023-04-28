@@ -6,32 +6,26 @@
 //
 
 import Foundation
-import AWSS3
-import ClientRuntime
-import AWSClientRuntime
-
-/// An enum error structure used to providing more descriptive errors when making requests.
-enum AWSError: String, Error {
-    case couldNotRetrieveListObjects
-}
+import SotoS3
 
 /// A struct object used as an intermediate interface to handle methods of downloading, uploading and deleting files of an AWS S3 bucket.
 struct AWSS3Manager {
     
     /// The AWS S3 manager instance to manager files hosted in the S3 bucket in the European region.
-    static let europeManager = AWSS3Manager(bucketName: Constants.euS3BucketName.rawValue, region: .euCentral1)
+    static let europeManager = AWSS3Manager(bucketName: Constants.euS3BucketName.rawValue, region: .eucentral1)
     
     /// The AWS S3 manager instance to manager files hosted in the S3 bucket in the North American region.
-    static let northAmericaManager = AWSS3Manager(bucketName: Constants.naS3BucketName.rawValue, region: .usEast2)
+    static let northAmericaManager = AWSS3Manager(bucketName: Constants.naS3BucketName.rawValue, region: .useast2)
+    
     
     /// The name of the bucket.
     let bucketName: String
     
     /// The region this bucket is located in.
-    let region: S3ClientTypes.BucketLocationConstraint
+    let region: Region
     
     /// The AWS S3 client object used to make requests.
-    let client: S3Client
+    let client: S3
     
     /// The local file manager to occasionally get or save files to local storage.
     let localManager = LocalFileManager()
@@ -40,7 +34,7 @@ struct AWSS3Manager {
     /// The region name of the bucket.
     var regionName: String {
         switch region {
-        case .usEast2:
+        case .useast2:
             return "North American"
         default:
             return "European Union"
@@ -52,23 +46,19 @@ struct AWSS3Manager {
     /// - Parameters:
     ///   - bucketName: The name of the bucket.
     ///   - region: The region the bucket is located in. Default value of `euCentral1` as we are mostly dealing with the EU region.
-    init(bucketName: String, region: S3ClientTypes.BucketLocationConstraint = .euCentral1) {
+    init(bucketName: String, region: Region = .eucentral1) {
         self.bucketName = bucketName
         self.region = region
-
-        do {
-            self.client = try S3Client(region: region.rawValue)
-        } catch {
-            fatalError(error.localizedDescription)
-        }
+        
+        let awsClient = AWSClient(credentialProvider: .default, httpClientProvider: .createNew)
+        self.client = S3(client: awsClient, region: region)
     }
 
     /// Returns a list of the files that are stored in AWS S3 for this particular region.
     func getAllFilesInBucket() async throws -> [String] {
-        let listInput = ListObjectsV2Input(bucket: bucketName)
-        let objects = try await client.listObjectsV2(input: listInput).contents
-        guard let objects else { return [] }
-
+        let request = S3.ListObjectsV2Request(bucket: bucketName)
+        let response = try await client.listObjectsV2(request)
+        guard let objects = response.contents else { return [] }
         return objects.compactMap(\.key) // Here the key of an AWS S3 object represents the file name.
     }
 
@@ -87,30 +77,25 @@ struct AWSS3Manager {
     /// Returns the result of whether the file was successfully uploaded to this bucket.
     /// - Parameters:
     ///   - data: The data to be uploaded to the bucket.
-    ///   - name: The name of the resource to upload.
-    ///   - ext: The file extension of the resource to upload.
+    ///   - filename: The name of the resource.
     func upload(data: Data, using filename: String) async throws -> Bool {
-        let dataStream = ByteStream.from(data: data)
-        
-        let input = PutObjectInput(body: dataStream, bucket: bucketName, key: filename)
-        _ = try await client.putObject(input: input)
-
-        let files = try await getAllFilesInBucket()
-        return files.contains(filename)
+        let payload = AWSPayload.byteBuffer(ByteBuffer(data: data))
+        let request = S3.PutObjectRequest(body: payload, bucket: bucketName, key: filename)
+        _ = try await client.putObject(request)
+        return true
     }
 
     
     /// Returns the data downloaded from a file that is stored in AWS S3 bucket for this region and name.
     /// - Parameter fileKey: The name of the file to be downloaded.
     func download(fileKey: String) async throws -> Data {
-        let objectInput = GetObjectInput(bucket: bucketName, key: fileKey)
-        let response = try await client.getObject(input: objectInput)
-
-        guard let bodyData = response.body else {
+        let request = S3.GetObjectRequest(bucket: bucketName, key: fileKey)
+        let response = try await client.getObject(request)
+        
+        guard let bodyData = response.body, let data = bodyData.asData() else {
             fatalError("Could not get data from response")
         }
-
-        let data = bodyData.toBytes().getData()
+        
         return data
     }
     
@@ -125,10 +110,8 @@ struct AWSS3Manager {
     /// Returns the result of whether the file was successfully deleted from this bucket.
     /// - Parameter fileKey: The name of the file to be deleted from the bucket.
     public func delete(fileKey: String) async throws -> Bool {
-        let deleteObjectInput = DeleteObjectInput(bucket: bucketName, key: fileKey)
-        _ = try await client.deleteObject(input: deleteObjectInput)
-
-        let files = try await getAllFilesInBucket()
-        return !files.contains(fileKey)
+        let request = S3.DeleteObjectRequest(bucket: bucketName, key: fileKey)
+        _ = try await client.deleteObject(request)
+        return true
     }
 }
