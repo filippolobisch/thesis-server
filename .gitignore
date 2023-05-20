@@ -9,3 +9,4 @@ db.sqlite
 .vscode
 data_files/
 .env
+Package.resolved
