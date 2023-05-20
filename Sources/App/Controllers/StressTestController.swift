@@ -20,9 +20,9 @@ class StressTestController {
 
     /// Method that is used to execute the benchmark.
     /// It first finds the url for the `LoadTest.js` file and then runs the k6 command on the shell.
-    func benchmark() {
+    func benchmark() async {
         do {
-            let loadTestPath = try LocalFileManager().url(forResource: "LoadTest", withExtension: "js")
+            let loadTestPath = await LocalManager().getFileURL(forResource: "LoadTest", withExtension: "js")
             let command = "k6 run \(loadTestPath.path)"
             _ = try terminal.shell(command)
         } catch {

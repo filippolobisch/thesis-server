@@ -41,7 +41,7 @@ class AdaptationController {
                 do {
                     _ = try await outsideEU.executeAdaptation()
                 } catch {
-                    Logger.shared.saveLogs()
+                    await Logger.shared.saveLogs()
                     fatalError("An error occurred inside the outsideEU main adaptation method. \(error.localizedDescription)")
                 }
             }
@@ -50,7 +50,7 @@ class AdaptationController {
                 do {
                     _ = try await sensitiveData.executeAdaptation()
                 } catch {
-                    Logger.shared.saveLogs()
+                    await Logger.shared.saveLogs()
                     fatalError("An error occurred inside the sensitiveData main adaptation method. \(error.localizedDescription)")
                 }
             }
