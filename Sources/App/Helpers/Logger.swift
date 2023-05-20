@@ -28,10 +28,10 @@ class Logger {
     }
     
     /// Saves the logs to the local directory.
-    func saveLogs() {
+    func saveLogs() async {
         do {
             let logData = Data(logs.utf8)
-            try LocalFileManager().save(data: logData, toResource: "Log_\(Date())", withExtension: "log")
+            try await LocalManager().save(data: logData, toResource: "Log_\(Date())", withExtension: "log")
         } catch {
             print(error.localizedDescription)
         }
