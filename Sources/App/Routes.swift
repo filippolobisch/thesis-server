@@ -34,6 +34,14 @@ struct Routes {
 
     /// The register API route that needs to be called to connect radar and this web server.
     func register(request: Request) async throws -> String {
-        return "Needs implementation."
+        logger.add(message: "Attempting to register application on RADAR.")
+        let result = try await RadarController().registerThisAppOnRadar(app: request.application)
+        if result != -1 {
+            logger.add(message: "Registered application on RADAR.")
+            return "Completed and successfully registered application on radar."
+        } else {
+            logger.add(message: "Error occurred when registering the application on RADAR.")
+            return "An error occurred registering the application. Check radar for more information."
+        }
     }
 }
