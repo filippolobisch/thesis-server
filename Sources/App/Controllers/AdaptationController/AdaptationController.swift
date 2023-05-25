@@ -19,45 +19,39 @@ class AdaptationController {
 
     /// The outsideEU object to perform calls to the adaptation.
     /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
-    let outsideEU = OutsideEU()
+    var outsideEU = OutsideEU()
     
     /// The sensitiveData object to perform calls to the adaptation.
     /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
-    let sensitiveData = SensitiveData()
+    var sensitiveData = SensitiveData()
     
-    /// Do not allow more than once instance of this class and restrict to singleton use.
-    private init() {}
-
     /// The main function of this adaptation controller.
     /// Once the data is converted we perform type-casting operations to get the information in a more appropriate format for our server.
     /// Then we retrieve each adaptation that needs to be execute and call the appropriate method based on it.
     /// We return true is no error if thrown and everything proceeds successfully.
-    final func root(data: String) -> Bool {
-        guard let key = Int(data) else { return false }
+    final func main(data: String) -> Bool {
+        let adaptation = AdaptationType(data)
         
-        switch key {
-        case 1: // EU
+        switch adaptation {
+        case .outsideEU:
             Task {
-                do {
-                    _ = try await outsideEU.executeAdaptation()
-                } catch {
-                    await Logger.shared.saveLogs()
-                    fatalError("An error occurred inside the outsideEU main adaptation method. \(error.localizedDescription)")
-                }
+                await execute(adaptation: &outsideEU)
             }
-        case 2: // SensitiveData
+        case .sensitiveData:
             Task {
-                do {
-                    _ = try await sensitiveData.executeAdaptation()
-                } catch {
-                    await Logger.shared.saveLogs()
-                    fatalError("An error occurred inside the sensitiveData main adaptation method. \(error.localizedDescription)")
-                }
+                await execute(adaptation: &sensitiveData)
             }
-        default:
-            fatalError("The returned key does not contain an appropriate adaptation key.")
         }
 
         return true
+    }
+    
+    private func execute(adaptation: inout some Adaptation) async {
+        do {
+            _ = try await adaptation.executeAdaptation()
+        } catch {
+            await Logger.shared.saveLogs()
+            fatalError("An error occurred inside the \(adaptation) method. \(error.localizedDescription)")
+        }
     }
 }
