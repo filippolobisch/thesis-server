@@ -16,10 +16,6 @@ final class TerminalTests: XCTestCase {
         let terminal = Terminal()
         let command = "ls"
         XCTAssertNoThrow(try terminal.shell(command), "The execution of the shell method inside the terminal class was expected to not throw an error, however, an error was thrown.")
-        
-        let result = try terminal.shell(command)
-        let expected = "Process task successfully started."
-        XCTAssertEqual(result, expected, "The result of the command expected to be equal to the expected result, however, the result of the command is different than the expected result.")
     }
     
     /// Test the termination of a process.

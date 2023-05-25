@@ -18,6 +18,10 @@ class Terminal {
         #endif
     }
     
+    private var zshURL: URL {
+        URL(fileURLWithPath: urlPath)
+    }
+    
     /// The ID of the process that is running.
     private(set) var pid = -1000 // Since each terminal class results in one benchmark test we hold a single process ID that is later used to kill that process.
     // The PID is set to -1000 to begin with so that it does not refer to any process.
@@ -26,15 +30,32 @@ class Terminal {
     /// This method creates a new process and uses the `-c` argument to execute the proper command.
     @discardableResult
     func shell(_ command: String) throws -> String {
-        Logger.shared.add(message: "Starting process with the following command: \(command).")
         if pid > 1000 {
             try terminate()
         }
         
-        let process = try Process.run(URL(fileURLWithPath: urlPath), arguments: ["-c", command])
-        pid = Int(process.processIdentifier)
-        Logger.shared.add(message: "Started process with pid \(pid + 1).")
-        return "Process task successfully started."
+        let process = Process()
+        let outputPipe = Pipe()
+        let errorPipe = Pipe()
+        
+        process.executableURL = zshURL
+        process.arguments = ["-c", command]
+        process.standardOutput = outputPipe
+        process.standardError = errorPipe
+        
+        do {
+            try process.run()
+            pid = Int(process.processIdentifier)
+            Logger.shared.add(message: "Started process with pid \(pid + 1).")
+            
+            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(decoding: outputData, as: UTF8.self)
+            return output
+        } catch {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let error = String(decoding: errorData, as: UTF8.self)
+            throw error
+        }
     }
     
     /// Method used to execute multiple commands.
@@ -51,9 +72,8 @@ class Terminal {
     /// Method to kill the running process.
     @discardableResult
     func terminate() throws -> Bool {
-        Logger.shared.add(message: "Terminating process with pid \(pid + 1)")
         let previousPID = pid + 1
-        let process = try Process.run(URL(fileURLWithPath: urlPath), arguments: ["-c", "kill -9 \(pid + 1)"])
+        let process = try Process.run(zshURL, arguments: ["-c", "kill -9 \(pid + 1)"])
         process.waitUntilExit()
         pid = -1000
         Logger.shared.add(message: "Process with pid \(previousPID) terminated.")
