@@ -5,18 +5,22 @@ import Vapor
 struct Routes {
     
     /// The adaptation controller instance. We use a property so that it is not re-created each time an adaptation is required.
-    let adaptationController =  AdaptationController.shared
+    let adaptationController =  AdaptationController()
 
     /// The custom logger object used to write and store important messages of what is occurring.
     let logger = Logger.shared
+    
+    let mainController = MainController()
     
     
     /// This method registers the required get and post http routes to the application.
     /// - Parameter app: The application that is running.
     func registerRoutes(app: Application) throws {
         app.get(use: index(request:))
-        app.get("runExperiment", use: runExperiment(request:))
+        app.post("runExperiment", use: runExperiment(request:))
         app.get("register", use: register(request:))
+        app.post("receive_files", use: receiveFiles(request:))
+        app.post("stress", use: stress(request:))
     }
 
     /// The index page of this server.
@@ -29,7 +33,7 @@ struct Routes {
             fatalError("Getting string from POST request failed")
         }
 
-        return adaptationController.root(data: data)
+        return adaptationController.main(data: data)
     }
 
     /// The register API route that needs to be called to connect radar and this web server.
@@ -43,5 +47,21 @@ struct Routes {
             logger.add(message: "Error occurred when registering the application on RADAR.")
             return "An error occurred registering the application. Check radar for more information."
         }
+    }
+    
+    func stress(request: Request) async throws -> Bool {
+        guard let data = request.body.string else {
+            fatalError("Getting string from POST request failed")
+        }
+        
+        await mainController.stress(data: data)
+        return true
+    }
+    
+    func receiveFiles(request: Request) async throws -> Bool {
+        guard let buffer = request.body.data else { return false }
+        let data = Data(buffer: buffer)
+        let result = try await mainController.receive(data: data)
+        return result
     }
 }
