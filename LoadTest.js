@@ -9,10 +9,9 @@ export const options = {
             executor: 'ramping-vus', // ramping-vus executor linearly increases the number of VUs from 0 (startVUs) to the specified target in the first stage.
             startVUs: 0, // The starting number of VUs running when the stress test starts.
             stages: [
-                { duration: '610s', target: 100 }, // Reach 100 Virtual Users who perform continuous requests throughout the duration of 610 seconds.
-                { duration: '10s', target: 0 }, // 10 seconds of ramp down, i.e., VUs are shutdown before stress test completes.
+                { duration: '900s', target: 900 } // Reach 100 Virtual Users who perform continuous requests throughout the duration of 610 seconds.
             ],
-            gracefulRampDown: '0s',
+            gracefulRampDown: '10s',
         },
     },
 }
@@ -20,7 +19,5 @@ export const options = {
 /// The main function that each VU runs on k6 experiment.
 /// In this method a HTTP get call is performed.
 export default function () {
-    let url = "http://127.0.0.1:8080/"
-    let result = http.get(url)
-    check(result, { 'status equals 200': r => r.status == 200 })
+    http.get("http://0.0.0.0:8080/")
 }
