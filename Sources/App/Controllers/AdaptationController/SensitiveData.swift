@@ -8,11 +8,16 @@
 import Foundation
 
 
-class SensitiveData {
+struct SensitiveData: Adaptation {
+    private(set) var useComponentB = true
+    private(set) var componentB = ComponentBController()
     
-    private(set) var task: Task<Void, any Error>?
-    
-    final func executeAdaptation() async throws -> Bool {
+    mutating func executeAdaptation() async throws -> Bool {
+        guard useComponentB else { return false }
+        let result = try await componentB.adapt(for: .thesisServer)
+        guard result else { return false }
+
+        useComponentB = false
         return true
     }
 }
