@@ -11,7 +11,6 @@ struct MainController {
     
     let localManager = LocalManager()
     
-    
     func stress(data: String) async {
         let adaptation = AdaptationType(data)
         
@@ -54,7 +53,6 @@ struct MainController {
         }
     }
     
-    
     private func localStress() async throws -> Bool {
         let files = try await localManager.listFilesInResourcesDirectory()
         try await withThrowingTaskGroup(of: Void.self) { group in
@@ -69,5 +67,4 @@ struct MainController {
         
         return true
     }
-    
 }

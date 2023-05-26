@@ -12,17 +12,10 @@ import FoundationNetworking
 import Vapor
 
 struct ComponentAController: Component {
-    
-    let endpoint = "http://0.0.0.0:3000"
+    let endpoint = ComponentHelper.componentA.endpoint
     
     func stress() async throws -> Bool {
         let fullEndpoint = endpoint + "/stress"
-        guard let url = URL(string: fullEndpoint) else {
-            throw NetworkError.invalidURL
-        }
-        
-        let request = URLRequest(url: url)
-        return try await NetworkManager.shared.fetchData(request: request, type: Bool.self)
+        return try await NetworkManager.shared.curl(endpoint: fullEndpoint)
     }
-    
 }

@@ -28,6 +28,15 @@ struct NetworkManager {
         return result
     }
     
+    func curl(endpoint: String) async throws -> Bool {
+        guard let url = URL(string: endpoint) else {
+            throw NetworkError.invalidURL
+        }
+        
+        let request = URLRequest(url: url)
+        return try await fetchData(request: request, type: Bool.self)
+    }
+    
     func fetchData(request: URLRequest) async throws -> Data {
         // Here we use `withCheckedThrowingContinuation` to get the result outside of the Data Task completion handler.
         // We also use this instead of a newer async await URLRequest method to be compatible with Ubuntu.
