@@ -26,4 +26,5 @@ protocol Adaptation {
     var componentB: ComponentBController { get }
     
     mutating func executeAdaptation() async throws -> Bool
+    func stress() async
 }

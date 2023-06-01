@@ -20,4 +20,15 @@ struct SensitiveData: Adaptation {
         useComponentB = false
         return true
     }
+    
+    func stress() async {
+        async let stressB = componentB.stress()
+        async let stressLocal = MainController().stress()
+        
+        do {
+            _ = try await (stressLocal, stressB)
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
 }

@@ -48,4 +48,16 @@ class AdaptationController {
             fatalError("An error occurred inside the \(adaptation) method. \(error.localizedDescription)")
         }
     }
+    
+    
+    func stress(data: String) async {
+        let adaptation = AdaptationType(data)
+        
+        switch adaptation {
+        case .outsideEU:
+            await outsideEU.stress()
+        case .sensitiveData:
+            await sensitiveData.stress()
+        }
+    }
 }

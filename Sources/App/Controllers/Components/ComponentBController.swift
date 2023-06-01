@@ -25,7 +25,7 @@ struct ComponentBController: Component {
         let result = try await NetworkManager.shared.send(data: data, to: fullEndpoint)
         guard result else { return false }
         
-        let didShutdown = try await shutdown()
+        let didShutdown = await shutdown()
         guard didShutdown else { return false }
         
         isOnline = false
@@ -33,12 +33,17 @@ struct ComponentBController: Component {
     }
     
     func stress() async throws -> Bool {
+        guard isOnline else { return false }
         let fullEndpoint = endpoint + "/stress"
         return try await NetworkManager.shared.curl(endpoint: fullEndpoint)
     }
     
-    func shutdown() async throws -> Bool {
+    func shutdown() async -> Bool {
         let fullEndpoint = endpoint + "/shutdown"
-        return try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        do {
+            return try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        } catch {
+            return true
+        }
     }
 }

@@ -21,7 +21,6 @@ struct Routes {
         app.get("register", use: register(request:))
         app.post("stress", use: stress(request:))
         app.on(.POST, "receiveFile", body: .collect(maxSize: "65mb"), use: receiveFile(request:))
-        app.get("exit", use: testExit(request:))
     }
 
     /// The index page of this server.
@@ -55,7 +54,7 @@ struct Routes {
             fatalError("Getting string from POST request failed")
         }
         
-        await mainController.stress(data: data)
+        await adaptationController.stress(data: data)
         return true
     }
     
@@ -64,13 +63,5 @@ struct Routes {
         let data = Data(buffer: buffer)
         let result = try await mainController.receive(data: data)
         return result
-    }
-    
-    func testExit(request: Request) async throws -> Bool {
-        do {
-            return try await ComponentBController().shutdown()
-        } catch {
-            return true
-        }
     }
 }
