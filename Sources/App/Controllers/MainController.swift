@@ -13,10 +13,11 @@ struct MainController {
     
     func receive(data: Data) async throws -> Bool {
         guard let decodedData = convert(data: data) else { return false }
-        guard let fileData = decodedData["fileData"] as? Data, let name = decodedData["name"] as? String, let ext = decodedData["ext"] as? String else {
+        guard let file = decodedData["fileData"] as? String, let name = decodedData["name"] as? String, let ext = decodedData["ext"] as? String else {
             return false
         }
         
+        let fileData = Data(file.utf8)
         try await localManager.save(data: fileData, toResource: name, withExtension: ext)
         return true
     }
