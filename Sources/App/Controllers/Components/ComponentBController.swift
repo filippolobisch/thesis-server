@@ -6,9 +6,6 @@
 //
 
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 
 struct ComponentBController: Component {
     
@@ -35,7 +32,8 @@ struct ComponentBController: Component {
     func stress() async throws -> Bool {
         guard isOnline else { return false }
         let fullEndpoint = endpoint + "/stress"
-        return try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        _ = try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        return true
     }
     
     func shutdown() async -> Bool {

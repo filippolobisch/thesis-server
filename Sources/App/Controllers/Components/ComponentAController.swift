@@ -6,16 +6,13 @@
 //
 
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
-import Vapor
 
 struct ComponentAController: Component {
     let endpoint = ComponentHelper.componentA.endpoint
     
     func stress() async throws -> Bool {
         let fullEndpoint = endpoint + "/stress"
-        return try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        _ = try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        return true
     }
 }

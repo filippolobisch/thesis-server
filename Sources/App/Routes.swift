@@ -54,7 +54,7 @@ struct Routes {
             fatalError("Getting string from POST request failed")
         }
         
-        await adaptationController.stress(data: data)
+        async let _ = adaptationController.stress(data: data)
         return true
     }
     
