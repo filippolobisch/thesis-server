@@ -6,14 +6,10 @@
 //
 
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 
 struct ComponentBController: Component {
     
-    let endpoint = "http://0.0.0.0:3030"
-    
+    let endpoint = ComponentHelper.componentB.endpoint
     var isOnline = true
     
     mutating func adapt(for component: ComponentHelper) async throws -> Bool {
@@ -26,7 +22,7 @@ struct ComponentBController: Component {
         let result = try await NetworkManager.shared.send(data: data, to: fullEndpoint)
         guard result else { return false }
         
-        let didShutdown = try await shutdown()
+        let didShutdown = await shutdown()
         guard didShutdown else { return false }
         
         isOnline = false
@@ -36,17 +32,16 @@ struct ComponentBController: Component {
     func stress() async throws -> Bool {
         guard isOnline else { return false }
         let fullEndpoint = endpoint + "/stress"
-        guard let url = URL(string: fullEndpoint) else {
-            throw NetworkError.invalidURL
-        }
-        
-        let request = URLRequest(url: url)
-        return try await NetworkManager.shared.fetchData(request: request, type: Bool.self)
+        _ = try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        return true
     }
     
-    func shutdown() async throws -> Bool {
-        let dockerContainerName = "componentb-app-1"
-        _ = try Terminal().shell("docker stop \(dockerContainerName)")
-        return true
+    func shutdown() async -> Bool {
+        let fullEndpoint = endpoint + "/shutdown"
+        do {
+            return try await NetworkManager.shared.curl(endpoint: fullEndpoint)
+        } catch {
+            return true
+        }
     }
 }

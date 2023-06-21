@@ -29,29 +29,35 @@ class AdaptationController {
     /// Once the data is converted we perform type-casting operations to get the information in a more appropriate format for our server.
     /// Then we retrieve each adaptation that needs to be execute and call the appropriate method based on it.
     /// We return true is no error if thrown and everything proceeds successfully.
-    final func main(data: String) -> Bool {
+    final func main(data: String) async -> Bool {
         let adaptation = AdaptationType(data)
         
         switch adaptation {
         case .outsideEU:
-            Task {
-                await execute(adaptation: &outsideEU)
-            }
+            return await execute(adaptation: &outsideEU)
         case .sensitiveData:
-            Task {
-                await execute(adaptation: &sensitiveData)
-            }
+            return await execute(adaptation: &sensitiveData)
         }
-
-        return true
     }
     
-    private func execute(adaptation: inout some Adaptation) async {
+    private func execute(adaptation: inout some Adaptation) async -> Bool {
         do {
-            _ = try await adaptation.executeAdaptation()
+            return try await adaptation.executeAdaptation()
         } catch {
             await Logger.shared.saveLogs()
             fatalError("An error occurred inside the \(adaptation) method. \(error.localizedDescription)")
+        }
+    }
+    
+    
+    func stress(data: String) async {
+        let adaptation = AdaptationType(data)
+        
+        switch adaptation {
+        case .outsideEU:
+            await outsideEU.stress()
+        case .sensitiveData:
+            await sensitiveData.stress()
         }
     }
 }

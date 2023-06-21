@@ -20,4 +20,14 @@ struct OutsideEU: Adaptation {
         useComponentB = false
         return true
     }
+    
+    func stress() async {
+        async let stressA = ComponentAController().stress()
+        async let stressB = componentB.stress()
+        do {
+            _ = try await (stressA, stressB)
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
 }

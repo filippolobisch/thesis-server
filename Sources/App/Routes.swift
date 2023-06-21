@@ -19,8 +19,8 @@ struct Routes {
         app.get(use: index(request:))
         app.post("runExperiment", use: runExperiment(request:))
         app.get("register", use: register(request:))
-        app.post("receive_files", use: receiveFiles(request:))
         app.post("stress", use: stress(request:))
+        app.on(.POST, "receiveFile", body: .collect(maxSize: "65mb"), use: receiveFile(request:))
     }
 
     /// The index page of this server.
@@ -28,12 +28,12 @@ struct Routes {
         return "Welcome to the thesis-server!"
     }
     
-    func runExperiment(request: Request) -> Bool {
+    func runExperiment(request: Request) async -> Bool {
         guard let data = request.body.string else {
             fatalError("Getting string from POST request failed")
         }
 
-        return adaptationController.main(data: data)
+        return await adaptationController.main(data: data)
     }
 
     /// The register API route that needs to be called to connect radar and this web server.
@@ -54,11 +54,11 @@ struct Routes {
             fatalError("Getting string from POST request failed")
         }
         
-        await mainController.stress(data: data)
+        async let _ = adaptationController.stress(data: data)
         return true
     }
     
-    func receiveFiles(request: Request) async throws -> Bool {
+    func receiveFile(request: Request) async throws -> Bool {
         guard let buffer = request.body.data else { return false }
         let data = Data(buffer: buffer)
         let result = try await mainController.receive(data: data)

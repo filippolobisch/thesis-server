@@ -42,5 +42,4 @@ struct RadarController {
         
         return try await NetworkManager.shared.fetchData(request: request, type: Int.self)
     }
-    
 }

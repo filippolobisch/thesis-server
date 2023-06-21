@@ -11,36 +11,13 @@ struct MainController {
     
     let localManager = LocalManager()
     
-    
-    func stress(data: String) async {
-        let adaptation = AdaptationType(data)
-        
-        async let stressB = ComponentBController().stress()
-        
-        switch adaptation {
-        case .outsideEU:
-            async let stressA = ComponentAController().stress()
-            do {
-                _ = try await (stressA, stressB)
-            } catch {
-                print(error.localizedDescription)
-            }
-        case .sensitiveData:
-            async let stressLocal = localStress()
-            do {
-                _ = try await (stressLocal, stressB)
-            } catch {
-                print(error.localizedDescription)
-            }
-        }
-    }
-    
     func receive(data: Data) async throws -> Bool {
         guard let decodedData = convert(data: data) else { return false }
-        guard let fileData = decodedData["fileData"] as? Data, let name = decodedData["name"] as? String, let ext = decodedData["ext"] as? String else {
+        guard let file = decodedData["fileData"] as? String, let name = decodedData["name"] as? String, let ext = decodedData["ext"] as? String else {
             return false
         }
         
+        let fileData = Data(file.utf8)
         try await localManager.save(data: fileData, toResource: name, withExtension: ext)
         return true
     }
@@ -54,8 +31,7 @@ struct MainController {
         }
     }
     
-    
-    private func localStress() async throws -> Bool {
+    func stress() async throws -> Bool {
         let files = try await localManager.listFilesInResourcesDirectory()
         try await withThrowingTaskGroup(of: Void.self) { group in
             for (name, ext) in files {
@@ -69,5 +45,4 @@ struct MainController {
         
         return true
     }
-    
 }
