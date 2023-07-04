@@ -11,12 +11,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.76.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "3.0.0"),
     ],
     targets: [
         .executableTarget(
             name: "App",
             dependencies: [
-                .product(name: "Vapor", package: "vapor")
+                .product(name: "Vapor", package: "vapor"),
+                .product(name: "Crypto", package: "swift-crypto")
             ],
             resources: [
                 .process("Resources")

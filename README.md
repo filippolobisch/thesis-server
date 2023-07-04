@@ -50,20 +50,14 @@ Furthermore, this server uses object-oriented-programming to achieve this separa
 ### Adaptation
 
 Adaptations are defined as Swift structures. 
-They inherit from the `Adaptation` protocol, that has a set of required properties and methods. 
+They inherit from the `Adaptation` protocol, that has a set of required methods. 
 The protocol is defined as follows:
 ```swift
 protocol Adaptation {
-    var useComponentB: Bool { get }
-    var componentB: ComponentBController { get }
-    
     mutating func executeAdaptation() async throws -> Bool
     func stress() async
 }
 ```
-
-We define two properties relating to `ComponentB`. This is because the adaptations we implemented use `ComponentB`. 
-Thus, they are required to hold a reference of its state (`useComponentB`) and to the controller to interact with the aforementioned component. 
 
 Finally, an enumeration is also created and used, through the use of a `switch` statement, to handle the incoming data and call the correct adaptation method.
 It is defined as follows:
@@ -71,6 +65,7 @@ It is defined as follows:
 enum AdaptationType: Int {
     case outsideEU = 1
     case sensitiveData = 2
+    case encryptData = 3
     
     init(_ string: String) {
         guard let key = Int(string), let adaptation = AdaptationType(rawValue: key) else {
@@ -93,9 +88,6 @@ To extend this server and include additional adaptations, there are two steps:
 The resulting code should look along these lines:
 ```swift
 struct MyNewAdaptation: Adaptation {
-    private(set) var useComponentB = true
-    private(set) var componentB = ComponentBController()
-    
     mutating func executeAdaptation() async throws -> Bool {
         // Adaptation specific code.
     }
@@ -110,11 +102,11 @@ struct MyNewAdaptation: Adaptation {
 enum AdaptationType: Int {
     case outsideEU = 1
     case sensitiveData = 2
-    case myNewAdaptation = 3
+    case encryptData = 3
+    case myNewAdaptation = 4
     
     // ...
 }
-
 ```
 
 And inside the `AdaptationController class:
@@ -132,6 +124,8 @@ class AdaptationController {
             return await execute(adaptation: &outsideEU)
         case .sensitiveData:
             return await execute(adaptation: &sensitiveData)
+        case .encryptData:
+            return await execute(adaptation: &encryptData)
         case .myNewAdaptation:
             return await execute(adaptation: &myNewAdaptation)
         }
@@ -147,6 +141,8 @@ class AdaptationController {
             await outsideEU.stress()
         case .sensitiveData:
             await sensitiveData.stress()
+        case .encryptData:
+            await encryptData.stress()
         case .myNewAdaptation:
             await myNewAdaptation.stress()
         }

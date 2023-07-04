@@ -25,6 +25,10 @@ class AdaptationController {
     /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
     var sensitiveData = SensitiveData()
     
+    /// The EncryptData object to perform calls to the adaptation.
+    /// This is needed to ensure that every time the adaptation is called the properties that need to updated don't reset.
+    var encryptData = EncryptData()
+    
     /// The main function of this adaptation controller.
     /// Once the data is converted we perform type-casting operations to get the information in a more appropriate format for our server.
     /// Then we retrieve each adaptation that needs to be execute and call the appropriate method based on it.
@@ -37,6 +41,8 @@ class AdaptationController {
             return await execute(adaptation: &outsideEU)
         case .sensitiveData:
             return await execute(adaptation: &sensitiveData)
+        case .encryptData:
+            return await execute(adaptation: &encryptData)
         }
     }
     
@@ -58,6 +64,8 @@ class AdaptationController {
             await outsideEU.stress()
         case .sensitiveData:
             await sensitiveData.stress()
+        case .encryptData:
+            await encryptData.stress()
         }
     }
 }

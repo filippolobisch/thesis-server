@@ -24,14 +24,15 @@ final class LocalManagerTests: XCTestCase {
     func testBundleURLAccuracy() async throws {
         let expectation = "thesis-server_App"
         let bundle = await localManager.bundle.bundleURL
-        XCTAssertEqual(bundle.deletingPathExtension().lastPathComponent, expectation)
+        let lastPathComponent = bundle.deletingPathExtension().lastPathComponent
+        XCTAssertEqual(lastPathComponent, expectation, "Expected the lastPathComponent to be equal to \(expectation), however, the result was \(lastPathComponent).")
     }
 
     /// Test the retrieval of all the file names in the data files directory.
     func testListFiles() async throws {
         let expectation = 2
         let files = try await localManager.listFilesInResourcesDirectory()
-        XCTAssertEqual(files.count, expectation, "The file names retrieved from the local manager expected to be of size \(expectation), however, the result was \(files.count) instead of \(expectation).")
+        XCTAssertEqual(files.count, expectation, "The file names retrieved from the local manager expected to be of size \(expectation), however, the result was \(files.count).")
     }
 
     /// Test the retrieval of the contents of an existing file using the name and extension.
