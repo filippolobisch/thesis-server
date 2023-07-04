@@ -10,6 +10,7 @@ import Foundation
 enum AdaptationType: Int {
     case outsideEU = 1
     case sensitiveData = 2
+    case encryptData = 3
     
     init(_ string: String) {
         guard let key = Int(string), let adaptation = AdaptationType(rawValue: key) else {
@@ -22,9 +23,6 @@ enum AdaptationType: Int {
 
 
 protocol Adaptation {
-    var useComponentB: Bool { get }
-    var componentB: ComponentBController { get }
-    
     mutating func executeAdaptation() async throws -> Bool
     func stress() async
 }
